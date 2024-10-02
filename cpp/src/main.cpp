@@ -1,57 +1,123 @@
 #include <chext_test/elastic.hpp>
-#include <iostream>
-#include <systemc>
 
+#include <iostream>
+
+#include <systemc>
 using namespace sc_core;
 using namespace sc_dt;
 
-struct MyModule : sc_module {
-    SC_HAS_PROCESS(MyModule);
+#include <VElasticModule.h>
 
-    MyModule()
-        : sc_module(sc_module_name("MyModule"))
+#include <sysc/kernel/sc_spawn.h>
+constexpr struct {
+    template<typename T>
+    void operator+(T&& t) const {
+        sc_spawn(std::forward<T>(t));
+    }
+} sc_spawn_helper;
+
+#define SC_SPAWN sc_spawn_helper + [&]
+
+struct ElasticModule : sc_module {
+    SC_HAS_PROCESS(ElasticModule);
+
+    sc_in_clk clock;
+    sc_in<bool> reset;
+
+    ElasticModule(sc_module_name const& name = "ElasticModule")
+        : sc_module { name }
+        , clock("clock")
+        , reset("reset")
+        , source1 { "source1", clock, reset, source1_data }
+        , source2 { "source2", clock, reset, source2_data }
+        , sink { "sink", clock, reset, sink_data }
+        , verilatedModule_("dut") {
+
+        verilatedModule_.clock(clock);
+        verilatedModule_.reset(reset);
+
+        verilatedModule_.source1_bits(source1_data);
+        verilatedModule_.source1_ready(source1.ready);
+        verilatedModule_.source1_valid(source1.valid);
+
+        verilatedModule_.source2_bits(source2_data);
+        verilatedModule_.source2_ready(source2.ready);
+        verilatedModule_.source2_valid(source2.valid);
+
+        verilatedModule_.sink_bits(sink_data);
+        verilatedModule_.sink_ready(sink.ready);
+        verilatedModule_.sink_valid(sink.valid);
+    }
+
+public:
+    Sender source1;
+    Sender source2;
+    Receiver sink;
+
+private:
+    DataSignal<uint32_t> source1_data;
+    DataSignal<uint32_t> source2_data;
+    DataSignal<uint32_t> sink_data;
+
+    VElasticModule verilatedModule_;
+};
+
+struct Testbench : sc_module {
+    SC_HAS_PROCESS(Testbench);
+
+    Testbench(sc_module_name const& name = "Testbench")
+        : sc_module { name }
+        , elasticModule_ { "elasticModule" }
         , clock_("clock")
-        , signal_("signal") {
-        SC_THREAD(thread1);
-        SC_THREAD(thread2);
+        , reset_("reset") {
+
+        elasticModule_.reset(reset_);
+        elasticModule_.clock(clock_);
+
+        SC_THREAD(thread0);
     }
 
 private:
-    void thread1() {
-        sc_bv_base test("0x07FFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
-        sc_unsigned test2(512);
-        test2 = "0x07FFFFFFFFFFFFFFFFFFFFFFFFFFFFFF";
-        std::cout << std::hex << test2 << std::endl;
-        std::cout << std::hex << test2.length() << std::endl;
+    ElasticModule elasticModule_;
 
-        signal_.write(false);
+    sc_clock clock_;
+    sc_signal<bool> reset_;
 
-        clock_.write(false);
-        wait(1, SC_NS);
+    void thread0() {
+        wait(clock_.negedge_event());
+        reset_.write(true);
 
-        clock_.write(true);
-        ::wait();
-        signal_.write(true);
+        wait(clock_.negedge_event());
+        wait(clock_.negedge_event());
 
-        wait(1, SC_NS);
+        reset_.write(false);
 
-        clock_.write(false);
-        wait(1, SC_NS);
+        wait(clock_.negedge_event());
+
+        SC_SPAWN {
+            wait(20, SC_NS);
+
+            for (int i = 0; i < 50; ++i)
+                elasticModule_.source1.send<uint32_t>(i * 10 + 3);
+        };
+
+        SC_SPAWN {
+            wait(20, SC_NS);
+            for (int i = 0; i < 50; ++i)
+                elasticModule_.source2.send<uint32_t>(i * 20 + 3);
+        };
+
+        SC_SPAWN {
+            wait(20, SC_NS);
+            for (int i = 0; i < 50; ++i)
+                std::cout << "received: " << elasticModule_.sink.receive<uint32_t>() << std::endl;
+        };
     }
-
-    void thread2() {
-        wait(clock_.posedge_event());
-        std::cout << "thread 2: " << sc_time_stamp() << std::endl;
-        std::cout << "value of signal: " << signal_.read() << std::endl;
-    }
-
-    sc_signal<bool> clock_;
-    sc_signal<bool> signal_;
 };
 
 int sc_main(int argc, char** argv) {
-    MyModule myModule;
-    sc_start(10, SC_NS);
+    Testbench testbench;
+    sc_start(50, SC_NS);
 
     return 0;
 }

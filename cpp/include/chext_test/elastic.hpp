@@ -22,6 +22,9 @@ private:
     std::string msg_;
 };
 
+struct Reference;
+struct ConstReference;
+
 struct Reference {
     Reference(std::type_info const& typeInfo, void* ptr)
         : typeInfo_ { typeInfo }
@@ -45,7 +48,7 @@ struct Reference {
     template<typename T>
     T& get() {
         if (!is<T>())
-            throw std::bad_cast("The stored reference is not of the requested type.");
+            throw std::bad_cast();
 
         return *((T*)ptr_);
     }
@@ -57,6 +60,8 @@ struct Reference {
 
         return *((T const*)ptr_);
     }
+
+    ConstReference asConst() const;
 
     ~Reference() = default;
 
@@ -73,7 +78,7 @@ struct ConstReference {
 
     template<typename T>
     ConstReference(T const& t)
-        : Reference(typeid(T), (void const*)&t) {
+        : ConstReference(typeid(T), (void const*)&t) {
     }
 
     ConstReference(ConstReference const&) = default;
@@ -88,7 +93,7 @@ struct ConstReference {
     template<typename T>
     T const& get() const {
         if (!is<T>())
-            throw std::bad_cast("The stored reference is not of the requested type.");
+            throw std::bad_cast();
 
         return *((T const*)ptr_);
     }
@@ -99,6 +104,10 @@ private:
     std::type_info const& typeInfo_;
     void const* ptr_;
 };
+
+inline ConstReference Reference::asConst() const {
+    return ConstReference(typeInfo_, ptr_);
+}
 
 struct DataSignalBase {
     virtual void poke(ConstReference cref) = 0;
@@ -125,7 +134,7 @@ struct DataSignal : DataSignalBase, sc_signal<D, SC_MANY_WRITERS> {
     using base_signal::base_signal;
 
     void poke(ConstReference cref) {
-        write(cref.get<D>());
+        base_signal::write(cref.get<D>());
     }
 
     void peek(Reference ref) {
@@ -134,12 +143,18 @@ struct DataSignal : DataSignalBase, sc_signal<D, SC_MANY_WRITERS> {
 };
 
 struct Sender {
-    sc_in_clk& clock;
-    sc_in<bool>& reset;
-    sc_signal<bool, SC_MANY_WRITERS> ready;
-    sc_signal<bool, SC_MANY_WRITERS> valid;
-
-    DataSignalBase& signal;
+    Sender(
+        std::string name,
+        sc_in_clk& clock,
+        sc_in<bool>& reset,
+        DataSignalBase& data
+    )
+        : clock { clock }
+        , reset { reset }
+        , data { data }
+        , ready { (name + "_ready").c_str() }
+        , valid { (name + "_valid").c_str() } {
+    }
 
     template<typename Packet>
     void send(Packet const& packet) {
@@ -147,7 +162,7 @@ struct Sender {
             wait(clock.negedge_event());
 
         // we attempt sending the packet at negedge
-        signal.poke(packet);
+        data.poke(packet);
         valid.write(true);
 
         do {
@@ -162,15 +177,30 @@ struct Sender {
         // we stop asserting the valid at negedge
         valid.write(false);
     }
+
+private:
+    sc_in_clk& clock;
+    sc_in<bool>& reset;
+    DataSignalBase& data;
+
+public:
+    sc_signal<bool, SC_MANY_WRITERS> ready;
+    sc_signal<bool, SC_MANY_WRITERS> valid;
 };
 
 struct Receiver {
-    sc_in_clk& clock;
-    sc_in<bool>& reset;
-    sc_signal<bool, SC_MANY_WRITERS> ready;
-    sc_signal<bool, SC_MANY_WRITERS> valid;
-
-    DataSignalBase& signal;
+    Receiver(
+        std::string name,
+        sc_in_clk& clock,
+        sc_in<bool>& reset,
+        DataSignalBase& data
+    )
+        : clock { clock }
+        , reset { reset }
+        , data { data }
+        , ready { (name + "_ready").c_str() }
+        , valid { (name + "_valid").c_str() } {
+    }
 
     template<typename Packet>
     Packet receive() {
@@ -188,13 +218,22 @@ struct Receiver {
         if (reset.read())
             throw SimulationException("Reset asserted during transmission!");
 
-        signal.peek(Reference { p });
+        data.peek(Reference { p });
 
         wait(clock.negedge_event());
         ready.write(false);
 
         return p;
     }
+
+private:
+    sc_in_clk& clock;
+    sc_in<bool>& reset;
+    DataSignalBase& data;
+
+public:
+    sc_signal<bool, SC_MANY_WRITERS> ready;
+    sc_signal<bool, SC_MANY_WRITERS> valid;
 };
 
 #endif /* CHEXT_TEST_ELASTIC_HPP_INCLUDED */
