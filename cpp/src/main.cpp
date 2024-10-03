@@ -106,21 +106,21 @@ private:
         SC_SPAWN {
             wait(20, SC_NS);
 
-            for (int i = 0; i < 4096 * 128; ++i)
+            for (int i = 0; i < 8; ++i)
                 dut.source1.send<uint32_t>(i * 10 + 3);
         };
 
         SC_SPAWN {
             wait(20, SC_NS);
-            for (int i = 0; i < 4096 * 128; ++i)
+            for (int i = 0; i < 8; ++i)
                 dut.source2.send<uint32_t>(i * 20 + 3);
         };
 
         SC_SPAWN {
             wait(20, SC_NS);
-            for (int i = 0; i < 4096 * 128; ++i)
-                dut.sink.receive<uint32_t>();
-            // std::cout << "received: " << dut.sink.receive<uint32_t>() << std::endl;
+            for (int i = 0; i < 8; ++i)
+                // dut.sink.receive<uint32_t>();
+                std::cout << "received: " << dut.sink.receive<uint32_t>() << std::endl;
 
             done_ = true;
         };
