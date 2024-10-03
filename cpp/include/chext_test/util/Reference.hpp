@@ -23,9 +23,6 @@ struct Reference {
     Reference(Reference const&) = default;
     Reference(Reference&&) = default;
 
-    Reference& operator=(Reference const&) = delete;
-    Reference& operator=(Reference&&) = delete;
-
     template<typename T>
     bool is() const { return typeid(T) == typeInfo_; }
 
@@ -67,9 +64,6 @@ struct ConstReference {
 
     ConstReference(ConstReference const&) = default;
     ConstReference(ConstReference&&) = default;
-
-    ConstReference& operator=(ConstReference const&) = delete;
-    ConstReference& operator=(ConstReference&&) = delete;
 
     template<typename T>
     bool is() const { return typeid(T) == typeInfo_; }
