@@ -39,15 +39,15 @@ struct ElasticModule : sc_module {
         verilatedModule.clock(clock);
         verilatedModule.reset(reset);
 
-        verilatedModule.source1_bits(source1.data);
+        verilatedModule.source1_bits(source1.bits);
         verilatedModule.source1_ready(source1.ready);
         verilatedModule.source1_valid(source1.valid);
 
-        verilatedModule.source2_bits(source2.data);
+        verilatedModule.source2_bits(source2.bits);
         verilatedModule.source2_ready(source2.ready);
         verilatedModule.source2_valid(source2.valid);
 
-        verilatedModule.sink_bits(sink.data);
+        verilatedModule.sink_bits(sink.bits);
         verilatedModule.sink_ready(sink.ready);
         verilatedModule.sink_valid(sink.valid);
     }

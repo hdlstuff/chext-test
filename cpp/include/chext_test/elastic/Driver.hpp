@@ -1,8 +1,8 @@
 #ifndef CHEXT_TEST_ELASTIC_DRIVER_HPP_INCLUDED
 #define CHEXT_TEST_ELASTIC_DRIVER_HPP_INCLUDED
 
-#include <chext_test/elastic/DataSignal.hpp>
 #include <chext_test/util/ReadyValid.hpp>
+#include <chext_test/util/Reference.hpp>
 
 #include <systemc>
 
@@ -13,27 +13,40 @@ namespace chext_test::elastic {
 namespace detail {
 
 using namespace sc_core;
-
 /**
- * @brief SignalAdapter pokes/peeks a signal-like type.
+ * @brief SignalDataMapper pokes/peeks a signal-like type.
+ * 
+ * @note I define a signal-like type as the following:
+ * 
+ * - `sc_signal<T>`
+ * 
+ * - a default-constructable struct that consists of members with signal-like types
+ * 
+ * Therefore, the following types are signal-like:
+ * 
+ * - `sc_signal<int>`
+ * 
+ * - `struct Bundle { sc_signal<int> b1, b2; };`
+ * 
+ * - `struct Bundle { sc_signal<int> a; struct { sc_signal<int> b1, b2; } b; };`
  *
  * @tparam SignalType
  */
-template<typename SignalType>
-struct SignalAdapter {
+template<typename SignalType, typename DataType>
+struct SignalDataMapper {
     using value_type = typename SignalType::value_type;
 
-    static void poke(SignalType& signal, ConstReference cref) {
-        signal.write(cref.get<value_type>());
+    static void poke(SignalType& signal, DataType const& data) {
+        signal.write(data);
     }
 
-    static void peek(SignalType const& signal, Reference ref) {
-        ref.get<value_type>() = signal.read();
+    static void peek(SignalType const& signal, DataType& data) {
+        data = signal.read();
     }
 };
 
 template<
-    typename DataSignalType,
+    typename BitsSignal,
     bool PosEdgeClock = true,
     bool ActiveHighReset = true>
 struct Source {
@@ -48,14 +61,14 @@ struct Source {
         , valid { fmt::format("{}_valid", name).c_str() } {
     }
 
-    template<typename Packet>
-    void send(Packet const& packet) {
+    template<typename BitsData>
+    void send(BitsData const& x) {
         util::ReadyValid<PosEdgeClock, ActiveHighReset>::send(
             clock,
             reset,
             ready,
             valid,
-            [&] { SignalAdapter<DataSignalType>::poke(data, packet); }
+            [&] { SignalDataMapper<BitsSignal, BitsData>::poke(bits, x); }
         );
     }
 
@@ -64,13 +77,13 @@ private:
     sc_in<bool>& reset;
 
 public:
-    DataSignalType data;
+    BitsSignal bits;
     sc_signal<bool, SC_MANY_WRITERS> ready;
     sc_signal<bool, SC_MANY_WRITERS> valid;
 };
 
 template<
-    typename DataSignalType,
+    typename BitsSignal,
     bool PosEdgeClock = true,
     bool ActiveHighReset = true>
 struct Sink {
@@ -85,19 +98,19 @@ struct Sink {
         , valid { fmt::format("{}_valid", name).c_str() } {
     }
 
-    template<typename Packet>
-    Packet receive() {
-        Packet packet;
+    template<typename BitsData>
+    BitsData receive() {
+        BitsData x;
 
         util::ReadyValid<PosEdgeClock, ActiveHighReset>::receive(
             clock,
             reset,
             ready,
             valid,
-            [&] { SignalAdapter<DataSignalType>::peek(data, packet); }
+            [&] { SignalDataMapper<BitsSignal, BitsData>::peek(bits, x); }
         );
 
-        return packet;
+        return x;
     }
 
 private:
@@ -105,7 +118,7 @@ private:
     sc_in<bool>& reset;
 
 public:
-    DataSignalType data;
+    BitsSignal bits;
     sc_signal<bool, SC_MANY_WRITERS> ready;
     sc_signal<bool, SC_MANY_WRITERS> valid;
 };
