@@ -23,8 +23,8 @@ struct Reference {
     Reference(Reference const&) = default;
     Reference(Reference&&) = default;
 
-    Reference& operator=(Reference const&) = default;
-    Reference& operator=(Reference&&) = default;
+    Reference& operator=(Reference const&) = delete;
+    Reference& operator=(Reference&&) = delete;
 
     template<typename T>
     bool is() const { return typeid(T) == typeInfo_; }
@@ -40,7 +40,7 @@ struct Reference {
     template<typename T>
     T const& get() const {
         if (!is<T>())
-            throw std::bad_cast("The stored reference is not of the requested type.");
+            throw std::bad_cast();
 
         return *((T const*)ptr_);
     }
@@ -68,8 +68,8 @@ struct ConstReference {
     ConstReference(ConstReference const&) = default;
     ConstReference(ConstReference&&) = default;
 
-    ConstReference& operator=(ConstReference const&) = default;
-    ConstReference& operator=(ConstReference&&) = default;
+    ConstReference& operator=(ConstReference const&) = delete;
+    ConstReference& operator=(ConstReference&&) = delete;
 
     template<typename T>
     bool is() const { return typeid(T) == typeInfo_; }

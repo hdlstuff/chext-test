@@ -35,9 +35,6 @@ struct Signals {
     static constexpr unsigned wUserW = WUSER_WIDTH;
     static constexpr unsigned wUserB = BUSER_WIDTH;
 
-    sc_in_clk& ACLK;
-    sc_in<bool>& ARESETn;
-
     sc_signal<bool> ARREADY;
     sc_signal<bool> ARVALID;
     sc_signal<sc_bv<wId>> ARID;
@@ -88,9 +85,7 @@ struct Signals {
     sc_signal<sc_bv<wUserB>> BUSER;
 
     Signals(const char* name)
-        : ACLK(fmt::format("{}_ACLK", name).c_str())
-        , ARESETn(fmt::format("{}_ARESETn", name).c_str())
-        , ARREADY(fmt::format("{}_ARREADY", name).c_str())
+        : ARREADY(fmt::format("{}_ARREADY", name).c_str())
         , ARVALID(fmt::format("{}_ARVALID", name).c_str())
         , ARID(fmt::format("{}_ARID", name).c_str())
         , ARADDR(fmt::format("{}_ARADDR", name).c_str())
@@ -136,7 +131,7 @@ struct Signals {
         , BUSER(fmt::format("{}_BUSER", name).c_str()) {
     }
 
-    void pokeAR(AddressPacket const& ar) override {
+    void pokeAR(AddressPacket const& ar) {
         ARID.write(ar.id);
         ARADDR.write(ar.addr);
         ARLEN.write(ar.len);
@@ -148,7 +143,7 @@ struct Signals {
         ARUSER.write(ar.user);
     }
 
-    AddressPacket peekAR() override {
+    AddressPacket peekAR() {
         AddressPacket ar;
         ar.id = ARID.read();
         ar.addr = ARADDR.read();
@@ -162,7 +157,7 @@ struct Signals {
         return ar;
     }
 
-    void pokeAW(AddressPacket const& aw) override {
+    void pokeAW(AddressPacket const& aw) {
         AWID.write(aw.id);
         AWADDR.write(aw.addr);
         AWLEN.write(aw.len);
@@ -174,7 +169,7 @@ struct Signals {
         AWUSER.write(aw.user);
     }
 
-    AddressPacket peekAW() override {
+    AddressPacket peekAW() {
         AddressPacket aw;
         aw.id = AWID.read();
         aw.addr = AWADDR.read();
@@ -188,14 +183,14 @@ struct Signals {
         return aw;
     }
 
-    void pokeW(WriteDataPacket const& w) override {
+    void pokeW(WriteDataPacket const& w) {
         WDATA.write(w.data);
         WSTRB.write(w.strb);
         WLAST.write(w.last);
         WUSER.write(w.user);
     }
 
-    WriteDataPacket peekW() override {
+    WriteDataPacket peekW() {
         WriteDataPacket w;
         w.data = WDATA.read();
         w.strb = WSTRB.read();
@@ -204,7 +199,7 @@ struct Signals {
         return w;
     }
 
-    void pokeR(ReadDataPacket const& r) override {
+    void pokeR(ReadDataPacket const& r) {
         RID.write(r.id);
         RDATA.write(r.data);
         RRESP.write(r.resp);
@@ -212,7 +207,7 @@ struct Signals {
         RUSER.write(r.user);
     }
 
-    ReadDataPacket peekR() override {
+    ReadDataPacket peekR() {
         ReadDataPacket r;
         r.id = RID.read();
         r.data = RDATA.read();
@@ -222,13 +217,13 @@ struct Signals {
         return r;
     }
 
-    void pokeB(WriteResponsePacket const& b) override {
+    void pokeB(WriteResponsePacket const& b) {
         BID.write(b.id);
         BRESP.write(b.resp);
         BUSER.write(b.user);
     }
 
-    WriteResponsePacket peekB() override {
+    WriteResponsePacket peekB() {
         WriteResponsePacket b;
         b.id = BID.read();
         b.resp = BRESP.read();

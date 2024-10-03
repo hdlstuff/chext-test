@@ -81,11 +81,16 @@ struct Testbench : sc_module {
         SC_THREAD(thread0);
     }
 
+    bool isDone() const noexcept {
+        return done_;
+    }
+
     ElasticModule dut;
 
 private:
     sc_clock clock_;
     sc_signal<bool> reset_;
+    bool done_ { false };
 
     void thread0() {
         wait(clock_.negedge_event());
@@ -101,20 +106,23 @@ private:
         SC_SPAWN {
             wait(20, SC_NS);
 
-            for (int i = 0; i < 50; ++i)
+            for (int i = 0; i < 4096 * 128; ++i)
                 dut.source1.send<uint32_t>(i * 10 + 3);
         };
 
         SC_SPAWN {
             wait(20, SC_NS);
-            for (int i = 0; i < 50; ++i)
+            for (int i = 0; i < 4096 * 128; ++i)
                 dut.source2.send<uint32_t>(i * 20 + 3);
         };
 
         SC_SPAWN {
             wait(20, SC_NS);
-            for (int i = 0; i < 50; ++i)
-                std::cout << "received: " << dut.sink.receive<uint32_t>() << std::endl;
+            for (int i = 0; i < 4096 * 128; ++i)
+                dut.sink.receive<uint32_t>();
+            // std::cout << "received: " << dut.sink.receive<uint32_t>() << std::endl;
+
+            done_ = true;
         };
     }
 };
@@ -131,7 +139,8 @@ int sc_main(int argc, char** argv) {
     testbench.dut.verilatedModule.trace(trace_file.get(), 99);
     trace_file->open("ElasticModule.vcd");
 
-    sc_start(50, SC_NS);
+    while (!testbench.isDone())
+        sc_start(50, SC_NS);
 
     trace_file->close();
 
