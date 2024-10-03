@@ -7,14 +7,26 @@ find_package(SystemCLanguage REQUIRED)
 find_package(verilator REQUIRED)
 find_package(fmt REQUIRED)
 
-add_executable(exec01)
-target_sources(exec01 PUBLIC src/main.cpp)
-target_include_directories(exec01 PUBLIC include/)
-target_link_libraries(exec01 PUBLIC SystemC::systemc fmt::fmt)
+add_executable(ElasticModule.tb)
+target_sources(ElasticModule.tb PUBLIC src/ElasticModule.tb.cpp)
+target_include_directories(ElasticModule.tb PUBLIC include/)
+target_link_libraries(ElasticModule.tb PUBLIC SystemC::systemc fmt::fmt)
 
 verilate(
-    exec01
+    ElasticModule.tb
     SYSTEMC
     SOURCES ElasticModule.sv
     VERILATOR_ARGS --trace
+)
+
+add_executable(AxiModule.tb)
+target_sources(AxiModule.tb PUBLIC src/AxiModule.tb.cpp)
+target_include_directories(AxiModule.tb PUBLIC include/)
+target_link_libraries(AxiModule.tb PUBLIC SystemC::systemc fmt::fmt)
+
+verilate(
+    AxiModule.tb
+    SYSTEMC
+    SOURCES AxiModule.sv
+    VERILATOR_ARGS --trace --pins-bv 2
 )

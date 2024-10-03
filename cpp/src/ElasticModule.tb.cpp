@@ -1,5 +1,5 @@
-#include <chext_test/amba/axi4/Master.hpp>
 #include <chext_test/elastic/Driver.hpp>
+#include <chext_test/util/Spawn.hpp>
 using namespace chext_test::elastic;
 
 #include <iostream>
@@ -10,16 +10,6 @@ using namespace sc_dt;
 
 #include <VElasticModule.h>
 #include <verilated_vcd_sc.h>
-
-#include <sysc/kernel/sc_spawn.h>
-constexpr struct {
-    template<typename T>
-    void operator+(T&& t) const {
-        sc_spawn(std::forward<T>(t));
-    }
-} sc_spawn_helper;
-
-#define SC_SPAWN sc_spawn_helper + [&]
 
 struct ElasticModule : sc_module {
     SC_HAS_PROCESS(ElasticModule);
@@ -102,20 +92,20 @@ private:
             wait(20, SC_NS);
 
             for (int i = 0; i < 8; ++i)
-                dut.source1.send<uint32_t>(i * 10 + 3);
+                dut.source1.send(i * 10 + 3);
         };
 
         SC_SPAWN {
             wait(20, SC_NS);
             for (int i = 0; i < 8; ++i)
-                dut.source2.send<uint32_t>(i * 20 + 3);
+                dut.source2.send(i * 20 + 3);
         };
 
         SC_SPAWN {
             wait(20, SC_NS);
             for (int i = 0; i < 8; ++i)
-                // dut.sink.receive<uint32_t>();
-                std::cout << "received: " << dut.sink.receive<uint32_t>() << std::endl;
+                // dut.sink.receive();
+                std::cout << "received: " << dut.sink.receive() << std::endl;
 
             done_ = true;
         };

@@ -1,0 +1,213 @@
+#include <chext_test/amba/axi4/Signals.hpp>
+#include <chext_test/elastic/Driver.hpp>
+#include <chext_test/util/Spawn.hpp>
+
+using namespace chext_test::elastic;
+using namespace chext_test::amba;
+
+#include <fmt/core.h>
+
+#include <systemc>
+using namespace sc_core;
+using namespace sc_dt;
+
+#include <VAxiModule.h>
+#include <verilated_vcd_sc.h>
+
+struct AxiModule : sc_module {
+    SC_HAS_PROCESS(AxiModule);
+
+    sc_in_clk clock;
+    sc_in<bool> reset;
+
+    AxiModule(sc_module_name const& name = "AxiModule")
+        : sc_module { name }
+        , clock("clock")
+        , reset("reset")
+        , s_axi_ar { "s_axi_ar", clock, reset }
+        , s_axi_r { "s_axi_r", clock, reset }
+        , s_axi_aw { "s_axi_aw", clock, reset }
+        , s_axi_w { "s_axi_w", clock, reset }
+        , s_axi_b { "s_axi_b", clock, reset }
+        , verilatedModule("dut") {
+
+        verilatedModule.clock(clock);
+        verilatedModule.reset(reset);
+
+        // Read Address Channel
+        verilatedModule.S_AXI_ARREADY(s_axi_ar.ready);
+        verilatedModule.S_AXI_ARVALID(s_axi_ar.valid);
+        verilatedModule.S_AXI_ARID(s_axi_ar.bits.id);
+        verilatedModule.S_AXI_ARADDR(s_axi_ar.bits.addr);
+        verilatedModule.S_AXI_ARLEN(s_axi_ar.bits.len);
+        verilatedModule.S_AXI_ARSIZE(s_axi_ar.bits.size);
+        verilatedModule.S_AXI_ARBURST(s_axi_ar.bits.burst);
+        verilatedModule.S_AXI_ARLOCK(s_axi_ar.bits.lock);
+        verilatedModule.S_AXI_ARCACHE(s_axi_ar.bits.cache);
+        verilatedModule.S_AXI_ARPROT(s_axi_ar.bits.prot);
+        verilatedModule.S_AXI_ARQOS(s_axi_ar.bits.qos);
+        verilatedModule.S_AXI_ARREGION(s_axi_ar.bits.region);
+
+        // Read Data Channel
+        verilatedModule.S_AXI_RREADY(s_axi_r.ready);
+        verilatedModule.S_AXI_RVALID(s_axi_r.valid);
+        verilatedModule.S_AXI_RID(s_axi_r.bits.id);
+        verilatedModule.S_AXI_RDATA(s_axi_r.bits.data);
+        verilatedModule.S_AXI_RRESP(s_axi_r.bits.resp);
+        verilatedModule.S_AXI_RLAST(s_axi_r.bits.last);
+
+        // Write Address Channel
+        verilatedModule.S_AXI_AWREADY(s_axi_aw.ready);
+        verilatedModule.S_AXI_AWVALID(s_axi_aw.valid);
+        verilatedModule.S_AXI_AWID(s_axi_aw.bits.id);
+        verilatedModule.S_AXI_AWADDR(s_axi_aw.bits.addr);
+        verilatedModule.S_AXI_AWLEN(s_axi_aw.bits.len);
+        verilatedModule.S_AXI_AWSIZE(s_axi_aw.bits.size);
+        verilatedModule.S_AXI_AWBURST(s_axi_aw.bits.burst);
+        verilatedModule.S_AXI_AWLOCK(s_axi_aw.bits.lock);
+        verilatedModule.S_AXI_AWCACHE(s_axi_aw.bits.cache);
+        verilatedModule.S_AXI_AWPROT(s_axi_aw.bits.prot);
+        verilatedModule.S_AXI_AWQOS(s_axi_aw.bits.qos);
+        verilatedModule.S_AXI_AWREGION(s_axi_aw.bits.region);
+
+        // Write Data Channel
+        verilatedModule.S_AXI_WREADY(s_axi_w.ready);
+        verilatedModule.S_AXI_WVALID(s_axi_w.valid);
+        verilatedModule.S_AXI_WDATA(s_axi_w.bits.data);
+        verilatedModule.S_AXI_WSTRB(s_axi_w.bits.strb);
+        verilatedModule.S_AXI_WLAST(s_axi_w.bits.last);
+
+        // Write Response Channel
+        verilatedModule.S_AXI_BREADY(s_axi_b.ready);
+        verilatedModule.S_AXI_BVALID(s_axi_b.valid);
+        verilatedModule.S_AXI_BID(s_axi_b.bits.id);
+        verilatedModule.S_AXI_BRESP(s_axi_b.bits.resp);
+    }
+
+public:
+    using s_axi_signals = axi4::Signals<8, 12, 64>;
+
+    Source<s_axi_signals::ReadAddress> s_axi_ar;
+    Sink<s_axi_signals::ReadData> s_axi_r;
+
+    Source<s_axi_signals::WriteAddress> s_axi_aw;
+    Source<s_axi_signals::WriteData> s_axi_w;
+    Sink<s_axi_signals::WriteResponse> s_axi_b;
+
+public:
+    VAxiModule verilatedModule;
+};
+
+struct Testbench : sc_module {
+    SC_HAS_PROCESS(Testbench);
+
+    Testbench(sc_module_name const& name = "Testbench")
+        : sc_module { name }
+        , dut { "axiModule" }
+        , clock_("clock")
+        , reset_("reset") {
+
+        dut.reset(reset_);
+        dut.clock(clock_);
+
+        SC_THREAD(thread0);
+    }
+
+    bool isDone() const noexcept {
+        return done_;
+    }
+
+    AxiModule dut;
+
+private:
+    sc_clock clock_;
+    sc_signal<bool> reset_;
+    bool done_ { false };
+
+    void thread0() {
+        wait(clock_.negedge_event());
+        reset_.write(true);
+
+        wait(clock_.negedge_event());
+        wait(clock_.negedge_event());
+
+        reset_.write(false);
+
+        wait(clock_.negedge_event());
+
+        sc_join j;
+
+        SC_SPAWN_TO(j) {
+            axi4::Packets::WriteAddress aw;
+            aw.id = 85;
+            aw.addr = 0x0000;
+            aw.burst = 1;
+            aw.len = 3;
+            aw.size = 3;
+
+            dut.s_axi_aw.send(aw);
+        };
+
+        SC_SPAWN_TO(j) {
+            for (int i = 0; i < 4; ++i) {
+                axi4::Packets::WriteData w;
+                w.data = 0x1000 * i + i;
+                w.strb = 0xFF;
+                w.last = i == 3;
+
+                dut.s_axi_w.send(w);
+            }
+        };
+
+        SC_SPAWN_TO(j) {
+            dut.s_axi_b.receive();
+        };
+
+        j.wait();
+
+        SC_SPAWN_TO(j) {
+            axi4::Packets::WriteAddress ar;
+            ar.id = 12;
+            ar.addr = 0x0000;
+            ar.burst = 1;
+            ar.len = 3;
+            ar.size = 3;
+
+            dut.s_axi_ar.send(ar);
+        };
+
+        SC_SPAWN_TO(j) {
+            for (int i = 0; i < 4; ++i) {
+                axi4::Packets::ReadData r = dut.s_axi_r.receive();
+                fmt::print(
+                    "data = 0x{:016x}, id = {:03d}, last = {}\n",
+                    r.data.to_uint64(),
+                    r.id.to_int(),
+                    r.last
+                );
+            }
+
+            done_ = true;
+        };
+    }
+};
+
+int sc_main(int argc, char** argv) {
+    Verilated::commandArgs(argc, argv);
+    Verilated::traceEverOn(true);
+
+    Testbench testbench;
+
+    sc_start(SC_ZERO_TIME);
+
+    std::unique_ptr<VerilatedVcdSc> trace_file = std::make_unique<VerilatedVcdSc>();
+    testbench.dut.verilatedModule.trace(trace_file.get(), 99);
+    trace_file->open("AxiModule.vcd");
+
+    while (!testbench.isDone())
+        sc_start(50, SC_NS);
+
+    trace_file->close();
+
+    return 0;
+}
