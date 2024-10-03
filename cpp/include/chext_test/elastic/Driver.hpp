@@ -11,8 +11,8 @@ namespace detail {
 
 using namespace sc_core;
 
-struct Sender {
-    Sender(
+struct Source {
+    Source(
         std::string name,
         sc_in_clk& clock,
         sc_in<bool>& reset,
@@ -46,8 +46,8 @@ public:
     sc_signal<bool, SC_MANY_WRITERS> valid;
 };
 
-struct Receiver {
-    Receiver(
+struct Sink {
+    Sink(
         std::string name,
         sc_in_clk& clock,
         sc_in<bool>& reset,
@@ -87,8 +87,8 @@ public:
 
 } // namespace detail
 
-using detail::Receiver;
-using detail::Sender;
+using detail::Sink;
+using detail::Source;
 
 } // namespace chext_test::elastic
 

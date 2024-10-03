@@ -53,9 +53,9 @@ struct ElasticModule : sc_module {
     }
 
 public:
-    Sender source1;
-    Sender source2;
-    Receiver sink;
+    Source source1;
+    Source source2;
+    Sink sink;
 
 private:
     DataSignal<uint32_t> source1_data;
