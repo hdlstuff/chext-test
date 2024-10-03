@@ -136,8 +136,7 @@ struct Signals {
         , BUSER(fmt::format("{}_BUSER", name).c_str()) {
     }
 
-    void sendAR(AddressPacket const& ar) override {
-        ARVALID.write(true);
+    void pokeAR(AddressPacket const& ar) override {
         ARID.write(ar.id);
         ARADDR.write(ar.addr);
         ARLEN.write(ar.len);
@@ -149,7 +148,7 @@ struct Signals {
         ARUSER.write(ar.user);
     }
 
-    AddressPacket recvAR() override {
+    AddressPacket peekAR() override {
         AddressPacket ar;
         ar.id = ARID.read();
         ar.addr = ARADDR.read();
@@ -163,8 +162,7 @@ struct Signals {
         return ar;
     }
 
-    void sendAW(AddressPacket const& aw) override {
-        AWVALID.write(true);
+    void pokeAW(AddressPacket const& aw) override {
         AWID.write(aw.id);
         AWADDR.write(aw.addr);
         AWLEN.write(aw.len);
@@ -176,7 +174,7 @@ struct Signals {
         AWUSER.write(aw.user);
     }
 
-    AddressPacket recvAW() override {
+    AddressPacket peekAW() override {
         AddressPacket aw;
         aw.id = AWID.read();
         aw.addr = AWADDR.read();
@@ -190,15 +188,14 @@ struct Signals {
         return aw;
     }
 
-    void sendW(WriteDataPacket const& w) override {
-        WVALID.write(true);
+    void pokeW(WriteDataPacket const& w) override {
         WDATA.write(w.data);
         WSTRB.write(w.strb);
         WLAST.write(w.last);
         WUSER.write(w.user);
     }
 
-    WriteDataPacket recvW() override {
+    WriteDataPacket peekW() override {
         WriteDataPacket w;
         w.data = WDATA.read();
         w.strb = WSTRB.read();
@@ -207,8 +204,7 @@ struct Signals {
         return w;
     }
 
-    void sendR(ReadDataPacket const& r) override {
-        RVALID.write(true);
+    void pokeR(ReadDataPacket const& r) override {
         RID.write(r.id);
         RDATA.write(r.data);
         RRESP.write(r.resp);
@@ -216,7 +212,7 @@ struct Signals {
         RUSER.write(r.user);
     }
 
-    ReadDataPacket recvR() override {
+    ReadDataPacket peekR() override {
         ReadDataPacket r;
         r.id = RID.read();
         r.data = RDATA.read();
@@ -226,16 +222,17 @@ struct Signals {
         return r;
     }
 
-    void sendB(WriteResponsePacket const& b) override {
-        BVALID.write(true);
+    void pokeB(WriteResponsePacket const& b) override {
         BID.write(b.id);
         BRESP.write(b.resp);
+        BUSER.write(b.user);
     }
 
-    WriteResponsePacket recvB() override {
+    WriteResponsePacket peekB() override {
         WriteResponsePacket b;
         b.id = BID.read();
         b.resp = BRESP.read();
+        b.user = BUSER.read();
         return b;
     }
 };

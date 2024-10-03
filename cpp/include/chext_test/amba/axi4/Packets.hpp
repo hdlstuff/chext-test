@@ -40,6 +40,7 @@ struct WriteDataPacket {
 struct WriteResponsePacket {
     sc_bv_base id;
     uint8_t resp;
+    sc_bv_base user;
 };
 
 } // namespace detail

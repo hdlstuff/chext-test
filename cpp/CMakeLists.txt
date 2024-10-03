@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.29)
+cmake_minimum_required(VERSION 3.28)
 project(chext-test)
 
 add_compile_definitions(SC_DISABLE_API_VERSION_CHECK)
