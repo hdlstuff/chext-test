@@ -1,5 +1,6 @@
-#include <chext_test/elastic/Sender.hpp>
+#include <chext_test/amba/axi4/Master.hpp>
 #include <chext_test/elastic/Receiver.hpp>
+#include <chext_test/elastic/Sender.hpp>
 using namespace chext_test::elastic;
 
 #include <iostream>
