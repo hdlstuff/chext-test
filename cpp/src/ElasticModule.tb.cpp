@@ -43,9 +43,9 @@ struct ElasticModule : sc_module {
     }
 
 public:
-    Source<sc_signal<uint32_t>> source1;
-    Source<sc_signal<uint32_t>> source2;
-    Sink<sc_signal<uint32_t>> sink;
+    Source<sc_signal<uint32_t, SC_MANY_WRITERS>> source1;
+    Source<sc_signal<uint32_t, SC_MANY_WRITERS>> source2;
+    Sink<sc_signal<uint32_t, SC_MANY_WRITERS>> sink;
 
 public:
     VElasticModule verilatedModule;
@@ -88,27 +88,51 @@ private:
 
         wait(clock_.negedge_event());
 
-        SC_SPAWN {
-            wait(20, SC_NS);
+        // this is without dynamic polymorphism
 
+        sc_join j1;
+        wait(20, SC_NS);
+
+        SC_SPAWN_TO(j1) {
             for (int i = 0; i < 8; ++i)
                 dut.source1.send(i * 10 + 3);
         };
 
-        SC_SPAWN {
-            wait(20, SC_NS);
+        SC_SPAWN_TO(j1) {
             for (int i = 0; i < 8; ++i)
                 dut.source2.send(i * 20 + 3);
         };
 
-        SC_SPAWN {
-            wait(20, SC_NS);
+        SC_SPAWN_TO(j1) {
             for (int i = 0; i < 8; ++i)
                 // dut.sink.receive();
                 std::cout << "received: " << dut.sink.receive() << std::endl;
-
-            done_ = true;
         };
+
+        j1.wait();
+
+        // with dynamic polymorphism
+
+        SinkBase& sink = dut.sink;
+        sc_join j2;
+
+        wait(20, SC_NS);
+
+        SC_SPAWN_TO(j2) {
+            dut.source1.send(30);
+        };
+
+        SC_SPAWN_TO(j2) {
+            dut.source2.send(30);
+        };
+
+        SC_SPAWN_TO(j2) {
+            std::cout << "received: " << sink.receiveAsInt() << std::endl;
+        };
+
+        j2.wait();
+
+        done_ = true;
     }
 };
 

@@ -3,6 +3,8 @@
 #include <chext_test/elastic/Driver.hpp>
 #include <chext_test/util/Spawn.hpp>
 
+#include <chext_test/bits/Bits.hpp>
+
 using namespace chext_test::elastic;
 using namespace chext_test::amba;
 

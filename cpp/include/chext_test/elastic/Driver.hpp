@@ -1,6 +1,7 @@
 #ifndef CHEXT_TEST_ELASTIC_DRIVER_HPP_INCLUDED
 #define CHEXT_TEST_ELASTIC_DRIVER_HPP_INCLUDED
 
+#include <chext_test/bits/Bits.hpp>
 #include <chext_test/util/ReadyValid.hpp>
 
 #include <systemc>
@@ -37,11 +38,25 @@ using namespace sc_core;
  * @tparam SignalT
  */
 
+struct SinkBase {
+    virtual int receiveAsInt() = 0;
+    virtual unsigned int receiveAsUInt() = 0;
+    virtual long receiveAsLong() = 0;
+    virtual unsigned long receiveAsULong() = 0;
+    virtual std::int32_t receiveAsInt32() = 0;
+    virtual std::uint32_t receiveAsUInt32() = 0;
+    virtual std::int64_t receiveAsInt64() = 0;
+    virtual std::uint64_t receiveAsUInt64() = 0;
+    virtual std::string receiveAsString() = 0;
+
+    virtual ~SinkBase() = default;
+};
+
 template<
     typename BitsSignalT,
     bool PosEdgeClock = true,
     bool ActiveHighReset = true>
-struct Sink {
+struct Sink : SinkBase {
     using BitsValueT = typename BitsSignalT::value_type;
 
     Sink(
@@ -55,6 +70,32 @@ struct Sink {
         , ready { fmt::format("{}_ready", name).c_str() }
         , valid { fmt::format("{}_valid", name).c_str() } {
     }
+
+#define CHEXT_TEST_IMPL_RECEIVEAS_FOR(param1, param2)                    \
+    param2 receiveAs##param1() override {                                \
+        param2 x;                                                        \
+                                                                         \
+        util::ReadyValid<PosEdgeClock, ActiveHighReset>::receive(        \
+            clock,                                                       \
+            reset,                                                       \
+            ready,                                                       \
+            valid,                                                       \
+            [&] { x = bits::BitsPeek<BitsSignalT>::peek##param1(bits); } \
+        );                                                               \
+        return x;                                                        \
+    }
+
+    CHEXT_TEST_IMPL_RECEIVEAS_FOR(Int, int)
+    CHEXT_TEST_IMPL_RECEIVEAS_FOR(UInt, unsigned int)
+    CHEXT_TEST_IMPL_RECEIVEAS_FOR(Long, long)
+    CHEXT_TEST_IMPL_RECEIVEAS_FOR(ULong, unsigned long)
+    CHEXT_TEST_IMPL_RECEIVEAS_FOR(Int32, std::int32_t)
+    CHEXT_TEST_IMPL_RECEIVEAS_FOR(UInt32, std::uint32_t)
+    CHEXT_TEST_IMPL_RECEIVEAS_FOR(Int64, std::int64_t)
+    CHEXT_TEST_IMPL_RECEIVEAS_FOR(UInt64, std::uint64_t)
+    CHEXT_TEST_IMPL_RECEIVEAS_FOR(String, std::string)
+
+#undef CHEXT_TEST_IMPL_RECEIVEAS_FOR
 
     BitsValueT receive() {
         BitsValueT x;
@@ -78,7 +119,7 @@ public:
     BitsSignalT bits;
     sc_signal<bool, SC_MANY_WRITERS> ready;
     sc_signal<bool, SC_MANY_WRITERS> valid;
-};
+}; // namespace detail
 
 template<
     typename BitsSignalT,
@@ -121,8 +162,12 @@ public:
 
 } // namespace detail
 
+// clang-format off
+using detail::SinkBase;
 using detail::Sink;
+
 using detail::Source;
+// clang-format on
 
 } // namespace chext_test::elastic
 
