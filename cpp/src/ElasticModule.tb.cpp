@@ -123,12 +123,11 @@ private:
         };
 
         SC_SPAWN_TO(j2) {
-            dut.source2.send(30);
+            dut.source2.sendAs<long>(30);
         };
 
         SC_SPAWN_TO(j2) {
-            unsigned long x;
-            sink.receiveToReference(x);
+            auto x = sink.receiveAsUInt64();
             // std::cout << "received: " << sink.receiveAsULong() << std::endl;
             std::cout << "received: " << x << std::endl;
         };

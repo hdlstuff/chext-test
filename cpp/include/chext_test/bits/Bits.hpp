@@ -41,13 +41,35 @@ struct is_sc_signal : std::false_type {};
 template<typename T, sc_core::sc_writer_policy WP>
 struct is_sc_signal<sc_core::sc_signal<T, WP>> : std::true_type {};
 
+template<typename Base, typename T, typename = void>
+struct is_sc_signal_of : std::false_type {};
+
+template<typename Base, typename T, sc_core::sc_writer_policy WP>
+struct is_sc_signal_of<Base, sc_core::sc_signal<T, WP>, std::enable_if_t<std::is_base_of_v<Base, T>>> : std::true_type {};
+
+template<typename T, typename = void>
+struct is_sc_signal_of_integral : std::false_type {};
+
+template<typename T, sc_core::sc_writer_policy WP>
+struct is_sc_signal_of_integral<sc_core::sc_signal<T, WP>, std::enable_if_t<std::is_integral_v<T>>> : std::true_type {};
+
+static_assert(is_sc_signal_of<sc_dt::sc_bv_base, sc_core::sc_signal<sc_dt::sc_bv<31>>>::value);
+static_assert(!is_sc_signal_of<sc_dt::sc_lv_base, sc_core::sc_signal<sc_dt::sc_bv<31>>>::value);
+static_assert(!is_sc_signal_of_integral<sc_core::sc_signal<sc_dt::sc_bv<31>>>::value);
+static_assert(is_sc_signal_of_integral<sc_core::sc_signal<std::uint32_t>>::value);
+
+template<typename T>
+struct is_sc_signal_of_serializable {
+    static constexpr bool value = is_sc_signal_of<sc_dt::sc_bv_base, T>::value || is_sc_signal_of<sc_dt::sc_lv_base, T>::value || is_sc_signal_of<sc_dt::sc_int_base, T>::value || is_sc_signal_of<sc_dt::sc_uint_base, T>::value;
+};
+
 } // namespace detail
 
 template<typename T, typename = void>
 struct BitsPeek {
 
 #define CHEXT_TEST_IMPL_PEEK_FOR(param1, param2)                                                            \
-    static param2 peek##param1(T const& t) {                                                                \
+    static void peek##param1(T const& t, param2& x) {                                                       \
         throw util::Exception(fmt::format("peek" #param1 " is not implemented for {}.", typeid(T).name())); \
     }
 
@@ -68,11 +90,11 @@ template<typename T>
 struct BitsPeek<T, std::enable_if_t<detail::is_sc_signal<T>::value>> {
 
 #define CHEXT_TEST_IMPL_PEEK_FOR(param1, param2, param3)                                                        \
-    static param3 peek##param1(T const& t) {                                                                    \
+    static void peek##param1(T const& t, param3& x) {                                                           \
         if constexpr (detail::has_read_to_##param2<T>::value)                                                   \
-            return t.read().to_##param2();                                                                      \
+            x = t.read().to_##param2();                                                                         \
         else if constexpr (!std::is_same_v<param3, std::string>)                                                \
-            return t.read();                                                                                    \
+            x = t.read();                                                                                       \
         else                                                                                                    \
             throw util::Exception(fmt::format("peek" #param1 " is not implemented for {}.", typeid(T).name())); \
     }
@@ -92,44 +114,48 @@ struct BitsPeek<T, std::enable_if_t<detail::is_sc_signal<T>::value>> {
 
 template<typename T, typename = void>
 struct BitsPoke {
-    BitsPoke(T const& t) {}
 
-    void pokeInt(int x) {
-        throw util::Exception(fmt::format("pokeInt is not implemented for {}.", typeid(T).name()));
+#define CHEXT_TEST_IMPL_POKE_FOR(param1, param2)                                                            \
+    static void poke##param1(T& t, param2 const& x) {                                                       \
+        throw util::Exception(fmt::format("peek" #param1 " is not implemented for {}.", typeid(T).name())); \
     }
 
-    void pokeUInt(unsigned int x) {
-        throw util::Exception(fmt::format("pokeUInt is not implemented for {}.", typeid(T).name()));
-    }
+    CHEXT_TEST_IMPL_POKE_FOR(Int, int)
+    CHEXT_TEST_IMPL_POKE_FOR(UInt, unsigned int)
+    CHEXT_TEST_IMPL_POKE_FOR(Long, long)
+    CHEXT_TEST_IMPL_POKE_FOR(ULong, unsigned long)
+    CHEXT_TEST_IMPL_POKE_FOR(Int32, std::int32_t)
+    CHEXT_TEST_IMPL_POKE_FOR(UInt32, std::uint32_t)
+    CHEXT_TEST_IMPL_POKE_FOR(Int64, std::int64_t)
+    CHEXT_TEST_IMPL_POKE_FOR(UInt64, std::uint64_t)
+    CHEXT_TEST_IMPL_POKE_FOR(String, std::string)
 
-    void pokeLong(long x) {
-        throw util::Exception(fmt::format("pokeLong is not implemented for {}.", typeid(T).name()));
-    }
-
-    void pokeULong(unsigned long x) {
-        throw util::Exception(fmt::format("pokeULong is not implemented for {}.", typeid(T).name()));
-    }
-
-    void pokeInt32(std::int32_t x) {
-        throw util::Exception(fmt::format("pokeInt32 is not implemented for {}.", typeid(T).name()));
-    }
-
-    void pokeUInt32(std::uint32_t x) {
-        throw util::Exception(fmt::format("pokeUInt32 is not implemented for {}.", typeid(T).name()));
-    }
-
-    void pokeInt64(std::int64_t x) {
-        throw util::Exception(fmt::format("pokeInt64 is not implemented for {}.", typeid(T).name()));
-    }
-
-    void pokeUInt64(std::uint64_t x) {
-        throw util::Exception(fmt::format("pokeUInt64 is not implemented for {}.", typeid(T).name()));
-    }
-
-    void pokeString(const std::string& str) {
-        throw util::Exception(fmt::format("pokeString is not implemented for {}.", typeid(T).name()));
-    }
+#undef CHEXT_TEST_IMPL_POKE_FOR
 };
+
+template<typename T>
+struct BitsPoke<T, std::enable_if_t<detail::is_sc_signal<T>::value>> {
+#define CHEXT_TEST_IMPL_POKE_FOR(param1, param2)      \
+    static void poke##param1(T& t, param2 const& x) { \
+        t.write(x);                                   \
+    }
+
+    CHEXT_TEST_IMPL_POKE_FOR(Int, int)
+    CHEXT_TEST_IMPL_POKE_FOR(UInt, unsigned int)
+    CHEXT_TEST_IMPL_POKE_FOR(Long, long)
+    CHEXT_TEST_IMPL_POKE_FOR(ULong, unsigned long)
+    CHEXT_TEST_IMPL_POKE_FOR(Int32, std::int32_t)
+    CHEXT_TEST_IMPL_POKE_FOR(UInt32, std::uint32_t)
+    CHEXT_TEST_IMPL_POKE_FOR(Int64, std::int64_t)
+    CHEXT_TEST_IMPL_POKE_FOR(UInt64, std::uint64_t)
+
+    static void pokeString(T& t, std::string const& x) {
+        throw util::Exception(fmt::format("peekString is not implemented for {}.", typeid(T).name()));
+    }
+
+#undef CHEXT_TEST_IMPL_POKE_FOR
+};
+
 }; // namespace chext_test::bits
 
 #endif /* CHEXT_TEST_BITS_BITS_HPP_INCLUDED */
