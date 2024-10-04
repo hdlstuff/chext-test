@@ -10,17 +10,17 @@ namespace chext_test::util {
 template<bool PosEdgeClock = true, bool ActiveHighReset = true>
 struct ReadyValid {
     template<
-        typename ClockType,
-        typename ResetType,
-        typename ReadyType,
-        typename ValidType,
+        typename ClockT,
+        typename ResetT,
+        typename ReadyT,
+        typename ValidT,
         typename PokeDataFn //
         >
     static inline void send(
-        ClockType const& clock,
-        ResetType const& reset,
-        ReadyType const& ready,
-        ValidType& valid,
+        ClockT const& clock,
+        ResetT const& reset,
+        ReadyT const& ready,
+        ValidT& valid,
         PokeDataFn pokeDataFn
     ) {
         auto clock_ = constBoolWrapper<!PosEdgeClock>(clock);
@@ -47,17 +47,17 @@ struct ReadyValid {
     }
 
     template<
-        typename ClockType,
-        typename ResetType,
-        typename ReadyType,
-        typename ValidType,
+        typename ClockT,
+        typename ResetT,
+        typename ReadyT,
+        typename ValidT,
         typename PeekDataFn //
         >
     static inline void receive(
-        ClockType const& clock,
-        ResetType const& reset,
-        ReadyType& ready,
-        ValidType const& valid,
+        ClockT const& clock,
+        ResetT const& reset,
+        ReadyT& ready,
+        ValidT const& valid,
         PeekDataFn peekDataFn
     ) {
         auto clock_ = constBoolWrapper<!PosEdgeClock>(clock);

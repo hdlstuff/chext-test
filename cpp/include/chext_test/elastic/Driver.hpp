@@ -34,59 +34,20 @@ using namespace sc_core;
  *
  * - `struct Bundle { sc_signal<int> a; struct { sc_signal<int> b1, b2; } b; };`
  *
- * @tparam SignalType
+ * @tparam SignalT
  */
 
 template<
-    typename BitsSignalType,
-    bool PosEdgeClock = true,
-    bool ActiveHighReset = true>
-struct Source {
-    using BitsValueType = typename BitsSignalType::value_type;
-
-    Source(
-        std::string name,
-        sc_in_clk& clock,
-        sc_in<bool>& reset
-    )
-        : clock { clock }
-        , reset { reset }
-        , bits { fmt::format("{}_bits", name).c_str() }
-        , ready { fmt::format("{}_ready", name).c_str() }
-        , valid { fmt::format("{}_valid", name).c_str() } {
-    }
-
-    void send(BitsValueType const& x) {
-        util::ReadyValid<PosEdgeClock, ActiveHighReset>::send(
-            clock,
-            reset,
-            ready,
-            valid,
-            [&] { bits.write(x); }
-        );
-    }
-
-private:
-    sc_in_clk& clock;
-    sc_in<bool>& reset;
-
-public:
-    BitsSignalType bits;
-    sc_signal<bool, SC_MANY_WRITERS> ready;
-    sc_signal<bool, SC_MANY_WRITERS> valid;
-};
-
-template<
-    typename BitsSignalType,
+    typename BitsSignalT,
     bool PosEdgeClock = true,
     bool ActiveHighReset = true>
 struct Sink {
-    using BitsValueType = typename BitsSignalType::value_type;
+    using BitsValueT = typename BitsSignalT::value_type;
 
     Sink(
         std::string name,
-        sc_in_clk& clock,
-        sc_in<bool>& reset
+        sc_in_clk const& clock,
+        sc_in<bool> const& reset
     )
         : clock { clock }
         , reset { reset }
@@ -95,8 +56,8 @@ struct Sink {
         , valid { fmt::format("{}_valid", name).c_str() } {
     }
 
-    BitsValueType receive() {
-        BitsValueType x;
+    BitsValueT receive() {
+        BitsValueT x;
 
         util::ReadyValid<PosEdgeClock, ActiveHighReset>::receive(
             clock,
@@ -110,11 +71,50 @@ struct Sink {
     }
 
 private:
-    sc_in_clk& clock;
-    sc_in<bool>& reset;
+    sc_in_clk const& clock;
+    sc_in<bool> const& reset;
 
 public:
-    BitsSignalType bits;
+    BitsSignalT bits;
+    sc_signal<bool, SC_MANY_WRITERS> ready;
+    sc_signal<bool, SC_MANY_WRITERS> valid;
+};
+
+template<
+    typename BitsSignalT,
+    bool PosEdgeClock = true,
+    bool ActiveHighReset = true>
+struct Source {
+    using BitsValueT = typename BitsSignalT::value_type;
+
+    Source(
+        std::string name,
+        sc_in_clk const& clock,
+        sc_in<bool> const& reset
+    )
+        : clock { clock }
+        , reset { reset }
+        , bits { fmt::format("{}_bits", name).c_str() }
+        , ready { fmt::format("{}_ready", name).c_str() }
+        , valid { fmt::format("{}_valid", name).c_str() } {
+    }
+
+    void send(BitsValueT const& x) {
+        util::ReadyValid<PosEdgeClock, ActiveHighReset>::send(
+            clock,
+            reset,
+            ready,
+            valid,
+            [&] { bits.write(x); }
+        );
+    }
+
+private:
+    sc_in_clk const& clock;
+    sc_in<bool> const& reset;
+
+public:
+    BitsSignalT bits;
     sc_signal<bool, SC_MANY_WRITERS> ready;
     sc_signal<bool, SC_MANY_WRITERS> valid;
 };
