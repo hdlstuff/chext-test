@@ -35,25 +35,46 @@ CHEXT_TEST_IMPL_HAS_READ_TO_FOR(string)
 
 #undef CHEXT_TEST_IMPL_HAS_READ_TO_FOR
 
-template<typename T, typename = void>
-struct has_read : std::false_type {};
-
 template<typename T>
-struct has_read<T, std::void_t<decltype(std::declval<T>().read())>> : std::true_type {};
+struct is_sc_signal : std::false_type {};
+
+template<typename T, sc_core::sc_writer_policy WP>
+struct is_sc_signal<sc_core::sc_signal<T, WP>> : std::true_type {};
 
 } // namespace detail
 
 template<typename T, typename = void>
 struct BitsPeek {
 
-#define CHEXT_TEST_IMPL_PEEK_FOR(param1, param2, param3)                                                \
-    static param3 peek##param1(T const& t) {                                                            \
-        if constexpr (detail::has_read_to_##param2<T>::value)                                           \
-            return t.read().to_##param2();                                                              \
-        else if constexpr (detail::has_read<T>::value && !std::is_same_v<param3, std::string>)          \
-            return t.read();                                                                            \
-        else                                                                                            \
-            throw util::Exception(fmt::format("peekInt is not implemented for {}.", typeid(T).name())); \
+#define CHEXT_TEST_IMPL_PEEK_FOR(param1, param2)                                                            \
+    static param2 peek##param1(T const& t) {                                                                \
+        throw util::Exception(fmt::format("peek" #param1 " is not implemented for {}.", typeid(T).name())); \
+    }
+
+    CHEXT_TEST_IMPL_PEEK_FOR(Int, int)
+    CHEXT_TEST_IMPL_PEEK_FOR(UInt, unsigned int)
+    CHEXT_TEST_IMPL_PEEK_FOR(Long, long)
+    CHEXT_TEST_IMPL_PEEK_FOR(ULong, unsigned long)
+    CHEXT_TEST_IMPL_PEEK_FOR(Int32, std::int32_t)
+    CHEXT_TEST_IMPL_PEEK_FOR(UInt32, std::uint32_t)
+    CHEXT_TEST_IMPL_PEEK_FOR(Int64, std::int64_t)
+    CHEXT_TEST_IMPL_PEEK_FOR(UInt64, std::uint64_t)
+    CHEXT_TEST_IMPL_PEEK_FOR(String, std::string)
+
+#undef CHEXT_TEST_IMPL_PEEK_FOR
+};
+
+template<typename T>
+struct BitsPeek<T, std::enable_if_t<detail::is_sc_signal<T>::value>> {
+
+#define CHEXT_TEST_IMPL_PEEK_FOR(param1, param2, param3)                                                        \
+    static param3 peek##param1(T const& t) {                                                                    \
+        if constexpr (detail::has_read_to_##param2<T>::value)                                                   \
+            return t.read().to_##param2();                                                                      \
+        else if constexpr (!std::is_same_v<param3, std::string>)                                                \
+            return t.read();                                                                                    \
+        else                                                                                                    \
+            throw util::Exception(fmt::format("peek" #param1 " is not implemented for {}.", typeid(T).name())); \
     }
 
     CHEXT_TEST_IMPL_PEEK_FOR(Int, int, int)
@@ -67,9 +88,6 @@ struct BitsPeek {
     CHEXT_TEST_IMPL_PEEK_FOR(String, string, std::string)
 
 #undef CHEXT_TEST_IMPL_PEEK_FOR
-
-private:
-    T const& t_;
 };
 
 template<typename T, typename = void>
@@ -112,7 +130,6 @@ struct BitsPoke {
         throw util::Exception(fmt::format("pokeString is not implemented for {}.", typeid(T).name()));
     }
 };
-
 }; // namespace chext_test::bits
 
 #endif /* CHEXT_TEST_BITS_BITS_HPP_INCLUDED */

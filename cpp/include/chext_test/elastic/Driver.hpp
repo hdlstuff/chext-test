@@ -3,6 +3,7 @@
 
 #include <chext_test/bits/Bits.hpp>
 #include <chext_test/util/ReadyValid.hpp>
+#include <chext_test/util/Reference.hpp>
 
 #include <systemc>
 
@@ -48,6 +49,31 @@ struct SinkBase {
     virtual std::int64_t receiveAsInt64() = 0;
     virtual std::uint64_t receiveAsUInt64() = 0;
     virtual std::string receiveAsString() = 0;
+    virtual void receiveToReference(util::Reference ref) = 0;
+
+    template<typename T>
+    T receiveAs() {
+#define CHEXT_TEST_IMPL_RECEIVEAS_BRANCH(param1, param2) \
+    if constexpr (std::is_same_v<T, param2>)             \
+    return receiveAs##param1()
+
+        /**/ CHEXT_TEST_IMPL_RECEIVEAS_BRANCH(Int, int);
+        else CHEXT_TEST_IMPL_RECEIVEAS_BRANCH(UInt, unsigned int);
+        else CHEXT_TEST_IMPL_RECEIVEAS_BRANCH(Long, long);
+        else CHEXT_TEST_IMPL_RECEIVEAS_BRANCH(ULong, unsigned long);
+        else CHEXT_TEST_IMPL_RECEIVEAS_BRANCH(Int32, std::int32_t);
+        else CHEXT_TEST_IMPL_RECEIVEAS_BRANCH(UInt32, std::uint32_t);
+        else CHEXT_TEST_IMPL_RECEIVEAS_BRANCH(Int64, std::int64_t);
+        else CHEXT_TEST_IMPL_RECEIVEAS_BRANCH(UInt64, std::uint64_t);
+        else CHEXT_TEST_IMPL_RECEIVEAS_BRANCH(String, std::string);
+        else {
+            T t;
+            receiveToReference(t);
+            return t;
+        }
+
+#undef CHEXT_TEST_IMPL_RECEIVEAS_BRANCH
+    }
 
     virtual ~SinkBase() = default;
 };
@@ -109,6 +135,10 @@ struct Sink : SinkBase {
         );
 
         return x;
+    }
+
+    void receiveToReference(util::Reference ref) override {
+        ref.get<BitsValueT>() = receive();
     }
 
 private:

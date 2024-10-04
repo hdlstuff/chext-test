@@ -127,7 +127,10 @@ private:
         };
 
         SC_SPAWN_TO(j2) {
-            std::cout << "received: " << sink.receiveAsInt() << std::endl;
+            unsigned long x;
+            sink.receiveToReference(x);
+            // std::cout << "received: " << sink.receiveAsULong() << std::endl;
+            std::cout << "received: " << x << std::endl;
         };
 
         j2.wait();
