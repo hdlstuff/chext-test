@@ -1,4 +1,5 @@
 #include <chext_test/amba/axi4/full/Driver.hpp>
+#include <chext_test/amba/axi4/lite/Driver.hpp>
 #include <chext_test/elastic/Driver.hpp>
 #include <chext_test/util/Spawn.hpp>
 

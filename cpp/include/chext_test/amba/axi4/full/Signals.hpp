@@ -12,18 +12,26 @@ namespace detail {
 using namespace sc_core;
 using namespace sc_dt;
 
-template<unsigned wLock>
-struct lock_type_helper {
-    using lock_type = sc_bv<wLock>;
+template<unsigned WIDTH>
+struct bv_bool_helper {
+    using type = sc_bv<WIDTH>;
+
+    static auto peek(sc_signal<type> const& lock) {
+        return lock.read().to_uint();
+    }
 };
 
 template<>
-struct lock_type_helper<1> {
-    using lock_type = bool;
+struct bv_bool_helper<1> {
+    using type = bool;
+
+    static auto peek(sc_signal<type> const& lock) {
+        return lock.read();
+    }
 };
 
-template<unsigned wLock>
-using lock_t = typename lock_type_helper<wLock>::lock_type;
+template<unsigned WIDTH>
+using bv_bool_t = typename bv_bool_helper<WIDTH>::type;
 
 template<
     unsigned ID_WIDTH,
@@ -57,7 +65,7 @@ struct Signals {
         sc_signal<sc_bv<wLen>> len;
         sc_signal<sc_bv<3>> size;
         sc_signal<sc_bv<2>> burst;
-        sc_signal<lock_t<wLock>> lock;
+        sc_signal<bv_bool_t<wLock>> lock;
         sc_signal<sc_bv<4>> cache;
         sc_signal<sc_bv<3>> prot;
         sc_signal<sc_bv<4>> qos;
@@ -98,9 +106,9 @@ struct Signals {
             packet.len = len.read().to_uint();
             packet.size = size.read().to_uint();
             packet.burst = burst.read().to_uint();
-            packet.lock = lock.read().to_uint();
+            packet.lock = bv_bool_helper<wLock>::peek(lock);
             packet.cache = cache.read().to_uint();
-            packet.prot = cache.read().to_uint();
+            packet.prot = prot.read().to_uint();
             packet.qos = qos.read().to_uint();
             packet.region = region.read().to_uint();
             packet.user = user.read();
@@ -151,7 +159,7 @@ struct Signals {
         sc_signal<sc_bv<wLen>> len;
         sc_signal<sc_bv<3>> size;
         sc_signal<sc_bv<2>> burst;
-        sc_signal<lock_t<wLock>> lock;
+        sc_signal<bv_bool_t<wLock>> lock;
         sc_signal<sc_bv<4>> cache;
         sc_signal<sc_bv<3>> prot;
         sc_signal<sc_bv<4>> qos;
@@ -192,9 +200,9 @@ struct Signals {
             packet.len = len.read().to_uint();
             packet.size = size.read().to_uint();
             packet.burst = burst.read().to_uint();
-            packet.lock = lock.read().to_uint();
+            packet.lock = bv_bool_helper<wLock>::peek(lock);
             packet.cache = cache.read().to_uint();
-            packet.prot = cache.read().to_uint();
+            packet.prot = prot.read().to_uint();
             packet.qos = qos.read().to_uint();
             packet.region = region.read().to_uint();
             packet.user = user.read();
