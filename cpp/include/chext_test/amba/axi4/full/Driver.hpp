@@ -1,14 +1,14 @@
-#ifndef AMBA_AXI4_DRIVER_HPP_INCLUDED
-#define AMBA_AXI4_DRIVER_HPP_INCLUDED
+#ifndef CHEXT_TEST_AMBA_AXI4_FULL_DRIVER_HPP_INCLUDED
+#define CHEXT_TEST_AMBA_AXI4_FULL_DRIVER_HPP_INCLUDED
 
-#include <chext_test/amba/axi4/Signals.hpp>
+#include <chext_test/amba/axi4/full/Signals.hpp>
 #include <chext_test/elastic/Driver.hpp>
 
 #include <fmt/core.h>
 
 #include <systemc>
 
-namespace chext_test::amba::axi4 {
+namespace chext_test::amba::axi4::full {
 
 namespace detail {
 
@@ -168,4 +168,4 @@ using detail::Slave;
 
 } // namespace chext_test::amba::axi4
 
-#endif /* AMBA_AXI4_DRIVER_HPP_INCLUDED */
+#endif /* CHEXT_TEST_AMBA_AXI4_FULL_DRIVER_HPP_INCLUDED */

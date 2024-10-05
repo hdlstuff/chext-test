@@ -1,5 +1,4 @@
-#include <chext_test/amba/axi4/Driver.hpp>
-#include <chext_test/amba/axi4/Signals.hpp>
+#include <chext_test/amba/axi4/full/Driver.hpp>
 #include <chext_test/elastic/Driver.hpp>
 #include <chext_test/util/Spawn.hpp>
 
@@ -84,7 +83,7 @@ struct AxiModule : sc_module {
     }
 
 public:
-    axi4::Slave<8, 12, 64> s_axi;
+    axi4::full::Slave<8, 12, 64> s_axi;
 
 public:
     VAxiModule verilatedModule;
@@ -130,7 +129,7 @@ private:
         sc_join j;
 
         SC_SPAWN_TO(j) {
-            axi4::Packets::WriteAddress aw;
+            axi4::full::Packets::WriteAddress aw;
             aw.id = 85;
             aw.addr = 0x0000;
             aw.burst = 1;
@@ -142,7 +141,7 @@ private:
 
         SC_SPAWN_TO(j) {
             for (int i = 0; i < 4; ++i) {
-                axi4::Packets::WriteData w;
+                axi4::full::Packets::WriteData w;
                 w.data = 0x1000 * i + i;
                 w.strb = 0xFF;
                 w.last = i == 3;
@@ -158,7 +157,7 @@ private:
         j.wait();
 
         SC_SPAWN_TO(j) {
-            axi4::Packets::WriteAddress ar;
+            axi4::full::Packets::WriteAddress ar;
             ar.id = 12;
             ar.addr = 0x0000;
             ar.burst = 1;
@@ -170,7 +169,7 @@ private:
 
         SC_SPAWN_TO(j) {
             for (int i = 0; i < 4; ++i) {
-                axi4::Packets::ReadData r = dut.s_axi.receiveR();
+                axi4::full::Packets::ReadData r = dut.s_axi.receiveR();
                 fmt::print(
                     "data = 0x{:016x}, id = {:03d}, last = {}\n",
                     r.data.to_uint64(),

@@ -1,11 +1,11 @@
-#ifndef CHEXT_TEST_AMBA_AXI4_SIGNALS_HPP_INCLUDED
-#define CHEXT_TEST_AMBA_AXI4_SIGNALS_HPP_INCLUDED
+#ifndef CHEXT_TEST_AMBA_AXI4_FULL_SIGNALS_HPP_INCLUDED
+#define CHEXT_TEST_AMBA_AXI4_FULL_SIGNALS_HPP_INCLUDED
 
-#include <chext_test/amba/axi4/Packets.hpp>
+#include <chext_test/amba/axi4/full/Packets.hpp>
 #include <fmt/core.h>
 #include <systemc>
 
-namespace chext_test::amba::axi4 {
+namespace chext_test::amba::axi4::full {
 
 namespace detail {
 
@@ -265,6 +265,6 @@ struct Signals {
 
 using detail::Signals;
 
-} // namespace chext_test::amba::axi4
+} // namespace chext_test::amba::axi4::full
 
-#endif /* CHEXT_TEST_AMBA_AXI4_SIGNALS_HPP_INCLUDED */
+#endif /* CHEXT_TEST_AMBA_AXI4_FULL_SIGNALS_HPP_INCLUDED */

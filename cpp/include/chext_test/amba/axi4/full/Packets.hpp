@@ -1,9 +1,9 @@
-#ifndef CHEXT_TEST_AMBA_AXI4_CHANNELS_HPP_INCLUDED
-#define CHEXT_TEST_AMBA_AXI4_CHANNELS_HPP_INCLUDED
+#ifndef CHEXT_TEST_AMBA_AXI4_FULL_PACKETS_HPP_INCLUDED
+#define CHEXT_TEST_AMBA_AXI4_FULL_PACKETS_HPP_INCLUDED
 
 #include <systemc>
 
-namespace chext_test::amba::axi4 {
+namespace chext_test::amba::axi4::full {
 
 namespace detail {
 
@@ -56,4 +56,4 @@ using detail::Packets;
 
 } // namespace chext_test::amba::axi4
 
-#endif /* CHEXT_TEST_AMBA_AXI4_CHANNELS_HPP_INCLUDED */
+#endif /* CHEXT_TEST_AMBA_AXI4_FULL_PACKETS_HPP_INCLUDED */
