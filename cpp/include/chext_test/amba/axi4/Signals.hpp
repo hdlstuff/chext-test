@@ -84,6 +84,8 @@ struct Signals {
             size.write(packet.size);
             burst.write(packet.burst);
             lock.write(packet.lock);
+            cache.write(packet.cache);
+            prot.write(packet.prot);
             qos.write(packet.qos);
             region.write(packet.region);
             user.write(packet.user);
@@ -97,6 +99,8 @@ struct Signals {
             packet.size = size.read().to_uint();
             packet.burst = burst.read().to_uint();
             packet.lock = lock.read().to_uint();
+            packet.cache = cache.read().to_uint();
+            packet.prot = cache.read().to_uint();
             packet.qos = qos.read().to_uint();
             packet.region = region.read().to_uint();
             packet.user = user.read();
@@ -147,7 +151,7 @@ struct Signals {
         sc_signal<sc_bv<wLen>> len;
         sc_signal<sc_bv<3>> size;
         sc_signal<sc_bv<2>> burst;
-        sc_signal<lock_t<wLock>> lock; // TODO fix
+        sc_signal<lock_t<wLock>> lock;
         sc_signal<sc_bv<4>> cache;
         sc_signal<sc_bv<3>> prot;
         sc_signal<sc_bv<4>> qos;
@@ -174,6 +178,8 @@ struct Signals {
             size.write(packet.size);
             burst.write(packet.burst);
             lock.write(packet.lock);
+            cache.write(packet.cache);
+            prot.write(packet.prot);
             qos.write(packet.qos);
             region.write(packet.region);
             user.write(packet.user);
@@ -187,6 +193,8 @@ struct Signals {
             packet.size = size.read().to_uint();
             packet.burst = burst.read().to_uint();
             packet.lock = lock.read().to_uint();
+            packet.cache = cache.read().to_uint();
+            packet.prot = cache.read().to_uint();
             packet.qos = qos.read().to_uint();
             packet.region = region.read().to_uint();
             packet.user = user.read();

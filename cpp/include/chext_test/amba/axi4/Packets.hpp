@@ -18,6 +18,8 @@ struct Packets {
         uint8_t size;
         uint8_t burst;
         uint8_t lock;
+        uint8_t cache;
+        uint8_t prot;
         uint8_t qos;
         uint8_t region;
         sc_bv_base user;

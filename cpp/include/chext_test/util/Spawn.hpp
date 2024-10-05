@@ -2,6 +2,7 @@
 #define CHEXT_TEST_UTIL_SPAWNJOIN_HPP_INCLUDED
 
 #include <sysc/kernel/sc_spawn.h>
+#include <sysc/kernel/sc_join.h>
 
 namespace chext::util::detail {
 
