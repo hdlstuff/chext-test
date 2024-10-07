@@ -97,18 +97,18 @@ struct Sink : SinkBase {
         , valid { fmt::format("{}_valid", name).c_str() } {
     }
 
-#define CHEXT_TEST_IMPL_RECEIVEAS_FOR(param1, param2)                   \
-    param2 receiveAs##param1() override {                               \
-        param2 x;                                                       \
-                                                                        \
-        util::ReadyValid<PosEdgeClock, ActiveHighReset>::receive(       \
-            clock,                                                      \
-            reset,                                                      \
-            ready,                                                      \
-            valid,                                                      \
-            [&] { bits::BitsPeek<BitsSignalT>::peek##param1(bits, x); } \
-        );                                                              \
-        return x;                                                       \
+#define CHEXT_TEST_IMPL_RECEIVEAS_FOR(param1, param2)                     \
+    param2 receiveAs##param1() override {                                 \
+        param2 x;                                                         \
+                                                                          \
+        util::ReadyValid<PosEdgeClock, ActiveHighReset>::receive(         \
+            clock,                                                        \
+            reset,                                                        \
+            ready,                                                        \
+            valid,                                                        \
+            [&] { bits::ReadHelper<BitsSignalT, param2>::read(bits, x); } \
+        );                                                                \
+        return x;                                                         \
     }
 
     CHEXT_TEST_IMPL_RECEIVEAS_FOR(Int, int)
@@ -206,15 +206,15 @@ struct Source : SourceBase {
         , valid { fmt::format("{}_valid", name).c_str() } {
     }
 
-#define CHEXT_TEST_IMPL_SENDAS_FOR(param1, param2)                      \
-    void sendAs##param1(param2 const& x) override {                     \
-        util::ReadyValid<PosEdgeClock, ActiveHighReset>::send(          \
-            clock,                                                      \
-            reset,                                                      \
-            ready,                                                      \
-            valid,                                                      \
-            [&] { bits::BitsPoke<BitsSignalT>::poke##param1(bits, x); } \
-        );                                                              \
+#define CHEXT_TEST_IMPL_SENDAS_FOR(param1, param2)                          \
+    void sendAs##param1(param2 const& x) override {                         \
+        util::ReadyValid<PosEdgeClock, ActiveHighReset>::send(              \
+            clock,                                                          \
+            reset,                                                          \
+            ready,                                                          \
+            valid,                                                          \
+            [&] { bits::WriteHelper<BitsSignalT, param2>::write(bits, x); } \
+        );                                                                  \
     }
 
     CHEXT_TEST_IMPL_SENDAS_FOR(Int, int)

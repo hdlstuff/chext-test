@@ -4,7 +4,7 @@
 #include <sysc/kernel/sc_spawn.h>
 #include <sysc/kernel/sc_join.h>
 
-namespace chext::util::detail {
+namespace chext_test::util::detail {
 
 constexpr struct {
     template<typename T>
@@ -25,7 +25,7 @@ struct sc_spawn_to_helper_t {
 
 } // namespace chext::util::detail
 
-#define SC_SPAWN ::chext::util::detail::sc_spawn_helper + [&]
-#define SC_SPAWN_TO(j) ::chext::util::detail::sc_spawn_to_helper_t { (j) } + [&]
+#define SC_SPAWN ::chext_test::util::detail::sc_spawn_helper + [&]
+#define SC_SPAWN_TO(j) ::chext_test::util::detail::sc_spawn_to_helper_t { (j) } + [&]
 
 #endif /* CHEXT_TEST_UTIL_SPAWNJOIN_HPP_INCLUDED */
