@@ -43,9 +43,9 @@ struct ElasticModule : sc_module {
     }
 
 public:
-    Source<sc_signal<uint32_t, SC_MANY_WRITERS>> source1;
-    Source<sc_signal<uint32_t, SC_MANY_WRITERS>> source2;
-    Sink<sc_signal<uint32_t, SC_MANY_WRITERS>> sink;
+    Source<sc_signal<sc_bv<32>, SC_MANY_WRITERS>> source1;
+    Source<sc_signal<sc_bv<32>, SC_MANY_WRITERS>> source2;
+    Sink<sc_signal<sc_bv<32>, SC_MANY_WRITERS>> sink;
 
 public:
     VElasticModule verilatedModule;

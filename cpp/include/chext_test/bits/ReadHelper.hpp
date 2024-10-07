@@ -37,7 +37,7 @@ struct ReadHelper {
         std::enable_if_t<                                        \
             is_sc_signal_of_serializable<Source>::value>> {      \
         static void read(Source const& source, type& target) {   \
-            target = source.read().func;                         \
+            target = source.read().func();                       \
         }                                                        \
     };
 
