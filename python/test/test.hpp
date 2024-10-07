@@ -15,6 +15,7 @@
 
 /* BEGIN: chext_test includes for 'elastic' */
 #include <chext_test/elastic/Driver.hpp>
+#include <DataLast.hpp>
 /* END: chext_test includes for 'elastic' */
 
 /** @brief ScmyModule */

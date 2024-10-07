@@ -103,6 +103,8 @@ class ElasticProtocolHandler(wrapper.StatefulInterfaceHandler):
             role = "Sink"
         else:
             raise RuntimeError(f"Invalid interface role: {interface.role}")
+        
+        self._includeBlocks.append(f"#include {ep.includeStr}")
 
         def publicBlock(d: codegen.Dumper) -> None:
             d.iwriteln(f"chext_test::elastic::{role}<{bitsSignalType}> {interface.name};")
@@ -115,7 +117,7 @@ class ElasticProtocolHandler(wrapper.StatefulInterfaceHandler):
 
         def ctorBlock(d: codegen.Dumper) -> None:
             for (port, signal) in ep.portsToSignals:
-                d.iwriteln(f"verilatorModule_.{name}_{port}(this->{name}.{signal});")
+                d.iwriteln(f"verilatorModule_.{name}_{port}(this->{name}.bits.{signal});")
             d.separate()
 
         self._publicBlocks.append(publicBlock)

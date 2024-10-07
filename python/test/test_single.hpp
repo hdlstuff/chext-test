@@ -15,6 +15,7 @@
 
 /* BEGIN: chext_test includes for 'elastic' */
 #include <chext_test/elastic/Driver.hpp>
+#include <DataLast.hpp>
 /* END: chext_test includes for 'elastic' */
 
 /** @brief ScmyModule */
@@ -187,8 +188,8 @@ ScmyModule::ScmyModule(sc_core::sc_module_name const& moduleName) :
     /* END: chext_test ctor for 'amba/axi4' */
 
     /* BEGIN: chext_test ctor for 'elastic' */
-    verilatorModule_.sourceUInt_data(this->sourceUInt.data);
-    verilatorModule_.sourceUInt_last(this->sourceUInt.last);
+    verilatorModule_.sourceUInt_data(this->sourceUInt.bits.data);
+    verilatorModule_.sourceUInt_last(this->sourceUInt.bits.last);
 
     /* END: chext_test ctor for 'elastic' */
 
