@@ -13,6 +13,10 @@
 #include <chext_test/amba/axi4/lite/Driver.hpp>
 /* END: chext_test includes for 'amba/axi4' */
 
+/* BEGIN: chext_test includes for 'elastic' */
+#include <chext_test/elastic/Driver.hpp>
+/* END: chext_test includes for 'elastic' */
+
 /** @brief ScmyModule */
 class ScmyModule final :
     public sc_core::sc_module,
@@ -65,6 +69,10 @@ public:
     chext_test::amba::axi4::full::Master<4,32,256,32,32,32,32,32,false> m_axi;
     /* END: chext_test public for 'amba/axi4' */
 
+    /* BEGIN: chext_test public for 'elastic' */
+    chext_test::elastic::Source<DataLast> sourceUInt;
+    /* END: chext_test public for 'elastic' */
+
     virtual ~ScmyModule();
 
 private:
@@ -88,10 +96,9 @@ ScmyModule::ScmyModule(sc_core::sc_module_name const& moduleName) :
     clock("clock"),
     reset("reset"),
     irq("irq"),
-    /* BEGIN: chext_test ctor init for 'amba/axi4' */
-    s_axil_management("s_axil_management", verilatedModule_.clock, verilatedModule_.reset)
-    m_axi("m_axi", verilatedModule_.clock, verilatedModule_.reset)
-     {
+    s_axil_management("s_axil_management", verilatedModule_.clock, verilatedModule_.reset),
+    m_axi("m_axi", verilatedModule_.clock, verilatedModule_.reset),
+    sourceUInt("sourceUInt", verilatedModule_.clock, verilatedModule_.reset) {
 
     /* BEGIN: clock ports (conn) */
     verilatedModule_.clock(clock);
@@ -178,6 +185,13 @@ ScmyModule::ScmyModule(sc_core::sc_module_name const& moduleName) :
     verilatorModule_.m_axi_RLAST(this->m_axi.r.bits.last);
 
     /* END: chext_test ctor for 'amba/axi4' */
+
+    /* BEGIN: chext_test ctor for 'elastic' */
+    verilatorModule_.sourceUInt_data(this->sourceUInt.data);
+    verilatorModule_.sourceUInt_last(this->sourceUInt.last);
+
+    /* END: chext_test ctor for 'elastic' */
+
 }
 
 inline

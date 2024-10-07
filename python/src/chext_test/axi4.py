@@ -1,4 +1,5 @@
 from hdlinfo.protocols.amba import axi4
+import hdlinfo
 from hdlscw import codegen, wrapper
 from typing import *
 from .common import *
@@ -61,8 +62,7 @@ _SIGNAL_MAP = {
 
 
 @wrapper.registerInterfaceHandlerCustom("InterfaceHandlerAxi4")
-@transformStatefulInterfaceHandler
-class Axi4InterfaceHandler(StatefulInterfaceHandler):
+class Axi4InterfaceHandler(wrapper.StatefulInterfaceHandler):
     def __init__(self, wrapper: wrapper.Wrapper, cg: codegen.CodeGen) -> None:
         super().__init__(wrapper, cg)
 
@@ -88,15 +88,17 @@ class Axi4InterfaceHandler(StatefulInterfaceHandler):
             dumpBlockList(d, self._publicBlocks)
             d.iwriteln("/* END: chext_test public for 'amba/axi4' */")
 
+            d.separate()
+
         def ctorInit(d: codegen.Dumper) -> None:
-            d.iwriteln("/* BEGIN: chext_test ctor init for 'amba/axi4' */")
             dumpBlockList(d, self._ctorInitBlocks)
-            d.iwriteln("/* END: chext_test ctor init for 'amba/axi4' */")
 
         def ctor(d: codegen.Dumper) -> None:
             d.iwriteln("/* BEGIN: chext_test ctor for 'amba/axi4' */")
             dumpBlockList(d, self._ctorBlocks)
             d.iwriteln("/* END: chext_test ctor for 'amba/axi4' */")
+
+            d.separate()
 
         cg.addHdrIncludeBlock(hdrInclude)
         cg.addPublicBlock(public)
@@ -109,7 +111,15 @@ class Axi4InterfaceHandler(StatefulInterfaceHandler):
 
         cfg: axi4.Config = interface.args["config"]
         tpe = "lite" if cfg.lite else "full"
-        role = "Slave" if interface.role == "slave" else "Master"
+
+        role = None
+        if interface.role == "slave":
+            role = "Slave"
+        elif interface.role == "master":
+            role = "Master"
+        else:
+            raise RuntimeError(f"Invalid interface role: {interface.role}")
+
         paramsList = []
 
         if tpe == "lite":
@@ -135,7 +145,8 @@ class Axi4InterfaceHandler(StatefulInterfaceHandler):
         def ctorInitBlock(d: codegen.Dumper) -> None:
             clock = self.wrapper.getClock(interface.associatedClock)
             reset = self.wrapper.getReset(interface.associatedReset, True)
-            d.iwriteln(f"{name}(\"{name}\", {clock}, {reset})")
+            d.iwrite(f"{name}(\"{name}\", {clock}, {reset})")
+            d.writeln(",")
 
         def ctorBlock(d: codegen.Dumper) -> None:
             for signal in cfg.signals:

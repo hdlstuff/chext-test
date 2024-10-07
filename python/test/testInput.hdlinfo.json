@@ -100,6 +100,19 @@
                     }
                 }
             }
+        },
+        {
+            "name": "sourceUInt",
+            "role": "source",
+            "kind": "readyValid[DataLast]",
+            "associatedClock": "clock",
+            "associatedReset": "reset",
+            "args": {
+                "config": {
+                    "typeName": "int",
+                    "obj": 32
+                }
+            }
         }
     ],
     "args": {

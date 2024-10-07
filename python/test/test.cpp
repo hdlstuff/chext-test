@@ -6,10 +6,9 @@ ScmyModule::ScmyModule(sc_core::sc_module_name const& moduleName) :
     clock("clock"),
     reset("reset"),
     irq("irq"),
-    /* BEGIN: chext_test ctor init for 'amba/axi4' */
-    s_axil_management("s_axil_management", verilatedModule_.clock, verilatedModule_.reset)
-    m_axi("m_axi", verilatedModule_.clock, verilatedModule_.reset)
-     {
+    s_axil_management("s_axil_management", verilatedModule_.clock, verilatedModule_.reset),
+    m_axi("m_axi", verilatedModule_.clock, verilatedModule_.reset),
+    sourceUInt("sourceUInt", verilatedModule_.clock, verilatedModule_.reset) {
 
     /* BEGIN: clock ports (conn) */
     verilatedModule_.clock(clock);
@@ -96,6 +95,13 @@ ScmyModule::ScmyModule(sc_core::sc_module_name const& moduleName) :
     verilatorModule_.m_axi_RLAST(this->m_axi.r.bits.last);
 
     /* END: chext_test ctor for 'amba/axi4' */
+
+    /* BEGIN: chext_test ctor for 'elastic' */
+    verilatorModule_.sourceUInt_data(this->sourceUInt.data);
+    verilatorModule_.sourceUInt_last(this->sourceUInt.last);
+
+    /* END: chext_test ctor for 'elastic' */
+
 }
 
 ScmyModule::~ScmyModule() {

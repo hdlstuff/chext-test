@@ -13,6 +13,10 @@
 #include <chext_test/amba/axi4/lite/Driver.hpp>
 /* END: chext_test includes for 'amba/axi4' */
 
+/* BEGIN: chext_test includes for 'elastic' */
+#include <chext_test/elastic/Driver.hpp>
+/* END: chext_test includes for 'elastic' */
+
 /** @brief ScmyModule */
 class ScmyModule final :
     public sc_core::sc_module,
@@ -64,6 +68,10 @@ public:
     chext_test::amba::axi4::lite::Slave<20,32> s_axil_management;
     chext_test::amba::axi4::full::Master<4,32,256,32,32,32,32,32,false> m_axi;
     /* END: chext_test public for 'amba/axi4' */
+
+    /* BEGIN: chext_test public for 'elastic' */
+    chext_test::elastic::Source<DataLast> sourceUInt;
+    /* END: chext_test public for 'elastic' */
 
     virtual ~ScmyModule();
 
