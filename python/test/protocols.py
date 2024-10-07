@@ -1,11 +1,17 @@
 import chext_test
+import hdlinfo
+
+def signalName(interface: hdlinfo.Interface) -> str:
+    return f"PacketSignals<{interface.args.get("dataWidth", 32)}>"
 
 chext_test.ElasticProtocol(
-    "DataLast",
-    "<DataLast.hpp>",
-    "DataLast",
+    "Packet",
+    "<Packet.hpp>",
+    signalName,
     [
-        ("data", "data"),
-        ("last", "last")
+        ("bits_data", "bits.data"),
+        ("bits_id", "bits.id"),
+        ("ready", "ready"),
+        ("valid", "valid")
     ]
 )

@@ -8,7 +8,9 @@ ScmyModule::ScmyModule(sc_core::sc_module_name const& moduleName) :
     irq("irq"),
     s_axil_management("s_axil_management", verilatedModule_.clock, verilatedModule_.reset),
     m_axi("m_axi", verilatedModule_.clock, verilatedModule_.reset),
-    sourceUInt("sourceUInt", verilatedModule_.clock, verilatedModule_.reset) {
+    source1("source1", verilatedModule_.clock, verilatedModule_.reset),
+    source2("source2", verilatedModule_.clock, verilatedModule_.reset),
+    source3("source3", verilatedModule_.clock, verilatedModule_.reset) {
 
     /* BEGIN: clock ports (conn) */
     verilatedModule_.clock(clock);
@@ -97,8 +99,19 @@ ScmyModule::ScmyModule(sc_core::sc_module_name const& moduleName) :
     /* END: chext_test ctor for 'amba/axi4' */
 
     /* BEGIN: chext_test ctor for 'elastic' */
-    verilatorModule_.sourceUInt_data(this->sourceUInt.bits.data);
-    verilatorModule_.sourceUInt_last(this->sourceUInt.bits.last);
+    verilatorModule_.source1_bits(this->source1.bits);
+    verilatorModule_.source1_ready(this->source1.ready);
+    verilatorModule_.source1_valid(this->source1.valid);
+
+    verilatorModule_.source2_bits_data(this->source2.bits.data);
+    verilatorModule_.source2_bits_last(this->source2.bits.last);
+    verilatorModule_.source2_ready(this->source2.ready);
+    verilatorModule_.source2_valid(this->source2.valid);
+
+    verilatorModule_.source3_bits_data(this->source3.bits.data);
+    verilatorModule_.source3_bits_id(this->source3.bits.id);
+    verilatorModule_.source3_ready(this->source3.ready);
+    verilatorModule_.source3_valid(this->source3.valid);
 
     /* END: chext_test ctor for 'elastic' */
 

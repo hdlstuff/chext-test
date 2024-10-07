@@ -15,7 +15,8 @@
 
 /* BEGIN: chext_test includes for 'elastic' */
 #include <chext_test/elastic/Driver.hpp>
-#include <DataLast.hpp>
+#include <chext_test/elastic/DataLast.hpp>
+#include <Packet.hpp>
 /* END: chext_test includes for 'elastic' */
 
 /** @brief ScmyModule */
@@ -71,7 +72,9 @@ public:
     /* END: chext_test public for 'amba/axi4' */
 
     /* BEGIN: chext_test public for 'elastic' */
-    chext_test::elastic::Source<DataLast> sourceUInt;
+    chext_test::elastic::Source<sc_dt::sc_bv<32>> source1;
+    chext_test::elastic::Source<chext_test::elastic::DataLastSignals<64>> source2;
+    chext_test::elastic::Source<PacketSignals<128>> source3;
     /* END: chext_test public for 'elastic' */
 
     virtual ~ScmyModule();

@@ -102,15 +102,41 @@
             }
         },
         {
-            "name": "sourceUInt",
+            "name": "source1",
             "role": "source",
-            "kind": "readyValid[DataLast]",
+            "kind": "readyValid[chext.elastic.Data]",
             "associatedClock": "clock",
             "associatedReset": "reset",
             "args": {
-                "config": {
+                "width": {
                     "typeName": "int",
                     "obj": 32
+                }
+            }
+        },
+        {
+            "name": "source2",
+            "role": "source",
+            "kind": "readyValid[chext.elastic.DataLast]",
+            "associatedClock": "clock",
+            "associatedReset": "reset",
+            "args": {
+                "width": {
+                    "typeName": "int",
+                    "obj": 64
+                }
+            }
+        },
+        {
+            "name": "source3",
+            "role": "source",
+            "kind": "readyValid[Packet]",
+            "associatedClock": "clock",
+            "associatedReset": "reset",
+            "args": {
+                "dataWidth": {
+                    "typeName": "int",
+                    "obj": 128
                 }
             }
         }
