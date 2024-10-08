@@ -150,7 +150,7 @@ class Axi4InterfaceHandler(wrapper.StatefulInterfaceHandler):
 
         def ctorBlock(d: codegen.Dumper) -> None:
             for signal in cfg.signals:
-                d.iwriteln(f"verilatorModule_.{name}_{signal}(this->{name}.{_SIGNAL_MAP[signal]});")
+                d.iwriteln(f"verilatedModule_.{name}_{signal}(this->{name}.{_SIGNAL_MAP[signal]});")
             d.separate()
 
         self._publicBlocks.append(publicBlock)

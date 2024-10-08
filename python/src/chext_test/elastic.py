@@ -139,7 +139,7 @@ class ElasticProtocolHandler(wrapper.StatefulInterfaceHandler):
 
         def ctorBlock(d: codegen.Dumper) -> None:
             for (port, signal) in ep.portsToSignals:
-                d.iwriteln(f"verilatorModule_.{name}_{port}(this->{name}.{signal});")
+                d.iwriteln(f"verilatedModule_.{name}_{port}(this->{name}.{signal});")
 
             d.separate()
 
