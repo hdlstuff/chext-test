@@ -33,6 +33,8 @@ add_executable(
     src/test1.cpp
 )
 
+add_executable(test2 src/test2.cpp)
+
 target_link_libraries(test1 PUBLIC chext_test)
 
 add_compile_definitions(test1 PUBLIC SC_DISABLE_API_VERSION_CHECK)

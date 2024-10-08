@@ -7,6 +7,7 @@
 using namespace sc_core;
 using namespace sc_dt;
 
+#define EXPECT_(x) TestBenchBase::__expect((x), __FILE__, __LINE__, #x)
 #define EXPECT_EQ(a, b) TestBenchBase::__expect_eq((a), (b), __FILE__, __LINE__, #a, #b)
 #define EXPECT_NE(a, b) TestBenchBase::__expect_ne((a), (b), __FILE__, __LINE__, #a, #b)
 #define EXPECT_LT(a, b) TestBenchBase::__expect_lt((a), (b), __FILE__, __LINE__, #a, #b)
@@ -15,6 +16,7 @@ using namespace sc_dt;
 #define EXPECT_GE(a, b) TestBenchBase::__expect_ge((a), (b), __FILE__, __LINE__, #a, #b)
 #define EXPECT_EQ(a, b) TestBenchBase::__expect_eq((a), (b), __FILE__, __LINE__, #a, #b)
 
+#define ASSERT_(x) TestBenchBase::__assert((x), __FILE__, __LINE__, #x)
 #define ASSERT_EQ(a, b) TestBenchBase::__assert_eq((a), (b), __FILE__, __LINE__, #a, #b)
 #define ASSERT_NE(a, b) TestBenchBase::__assert_ne((a), (b), __FILE__, __LINE__, #a, #b)
 #define ASSERT_LT(a, b) TestBenchBase::__assert_lt((a), (b), __FILE__, __LINE__, #a, #b)
@@ -48,9 +50,10 @@ protected:
             return;
 
         fmt::print(
-            "[ {} ] EXPECT Fail: {} is FALSE ({}:{})\n",
+            "[ {} ] EXPECT Fail: {} is FALSE (t = {}) ({}:{})\n",
             this->name(),
             msg,
+            sc_time_stamp().to_string(),
             file, line
         );
     }
@@ -60,33 +63,35 @@ protected:
             return;
 
         fmt::print(
-            "[ {} ] EXPECT_NOT Fail: {} is TRUE ({}:{})\n",
+            "[ {} ] EXPECT_NOT Fail: {} is TRUE (t = {}) ({}:{})\n",
             this->name(),
             msg,
+            sc_time_stamp().to_string(),
             file, line
         );
     }
 
-#define EXPECT_BINARY_OP(param1, param2, param3, param4)                                       \
-    template<typename T1, typename T2>                                                         \
-    void __expect_##param1(                                                                    \
-        T1 const& a,                                                                           \
-        T2 const& b,                                                                           \
-        char const* file = nullptr,                                                            \
-        int line = -1,                                                                         \
-        char const* a_str = nullptr,                                                           \
-        char const* b_str = nullptr                                                            \
-    ) {                                                                                        \
-        if (a param3 b)                                                                        \
-            return;                                                                            \
-                                                                                               \
-        fmt::print(                                                                            \
-            "[ {} ] EXPECT_" #param2 " Fail: {} " #param4 " {} ({} " #param4 " {}) ({}:{})\n", \
-            this->name(),                                                                      \
-            a_str, b_str,                                                                      \
-            a, b,                                                                              \
-            file, line                                                                         \
-        );                                                                                     \
+#define EXPECT_BINARY_OP(param1, param2, param3, param4)                                                \
+    template<typename T1, typename T2>                                                                  \
+    void __expect_##param1(                                                                             \
+        T1 const& a,                                                                                    \
+        T2 const& b,                                                                                    \
+        char const* file = nullptr,                                                                     \
+        int line = -1,                                                                                  \
+        char const* a_str = nullptr,                                                                    \
+        char const* b_str = nullptr                                                                     \
+    ) {                                                                                                 \
+        if (a param3 b)                                                                                 \
+            return;                                                                                     \
+                                                                                                        \
+        fmt::print(                                                                                     \
+            "[ {} ] EXPECT_" #param2 " Fail: {} " #param4 " {} ({} " #param4 " {}) (t = {}) ({}:{})\n", \
+            this->name(),                                                                               \
+            a_str, b_str,                                                                               \
+            a, b,                                                                                       \
+            sc_time_stamp().to_string(),                                                                \
+            file, line                                                                                  \
+        );                                                                                              \
     }
 
     EXPECT_BINARY_OP(eq, EQ, ==, !=)
@@ -103,9 +108,10 @@ protected:
             return;
 
         fmt::print(
-            "[ {} ] ASSERT Fail: {} is FALSE ({}:{})\n",
+            "[ {} ] ASSERT Fail: {} is FALSE (t = {}) ({}:{})\n",
             this->name(),
             msg,
+            sc_time_stamp().to_string(),
             file, line
         );
 
@@ -117,36 +123,38 @@ protected:
             return;
 
         fmt::print(
-            "[ {} ] ASSERT_NOT Fail: {} is TRUE ({}:{})\n",
+            "[ {} ] ASSERT_NOT Fail: {} is TRUE (t = {}) ({}:{})\n",
             this->name(),
             msg,
+            sc_time_stamp().to_string(),
             file, line
         );
 
         stop();
     }
 
-#define ASSERT_BINARY_OP(param1, param2, param3, param4)                                       \
-    template<typename T>                                                                       \
-    void __assert_##param1(                                                                    \
-        T const& a,                                                                            \
-        T const& b,                                                                            \
-        char const* file = nullptr,                                                            \
-        int line = -1,                                                                         \
-        char const* a_str = nullptr,                                                           \
-        char const* b_str = nullptr                                                            \
-    ) {                                                                                        \
-        if (a param3 b)                                                                        \
-            return;                                                                            \
-                                                                                               \
-        fmt::print(                                                                            \
-            "[ {} ] ASSERT_" #param2 " Fail: {} " #param4 " {} ({} " #param4 " {}) ({}:{})\n", \
-            this->name(),                                                                      \
-            a_str, b_str,                                                                      \
-            a, b,                                                                              \
-            file, line                                                                         \
-        );                                                                                     \
-        stop();                                                                                \
+#define ASSERT_BINARY_OP(param1, param2, param3, param4)                                                \
+    template<typename T>                                                                                \
+    void __assert_##param1(                                                                             \
+        T const& a,                                                                                     \
+        T const& b,                                                                                     \
+        char const* file = nullptr,                                                                     \
+        int line = -1,                                                                                  \
+        char const* a_str = nullptr,                                                                    \
+        char const* b_str = nullptr                                                                     \
+    ) {                                                                                                 \
+        if (a param3 b)                                                                                 \
+            return;                                                                                     \
+                                                                                                        \
+        fmt::print(                                                                                     \
+            "[ {} ] ASSERT_" #param2 " Fail: {} " #param4 " {} ({} " #param4 " {}) (t = {}) ({}:{})\n", \
+            this->name(),                                                                               \
+            a_str, b_str,                                                                               \
+            a, b,                                                                                       \
+            sc_time_stamp().to_string(),                                                                \
+            file, line                                                                                  \
+        );                                                                                              \
+        stop();                                                                                         \
     }
 
     ASSERT_BINARY_OP(eq, EQ, ==, !=)
@@ -172,8 +180,24 @@ private:
 #include <chext_test/amba/axi4/full/Packets.hpp>
 
 #include <fmt/ostream.h>
-template <unsigned W>
+
+template<unsigned W>
 struct fmt::formatter<sc_bv<W>> : ostream_formatter {};
+
+template<>
+struct fmt::formatter<sc_bv_base> : ostream_formatter {};
+
+namespace chext_test::amba::axi4::full::detail {
+
+std::ostream& operator<<(std::ostream& os, chext_test::amba::axi4::full::Packets::Address const& pkt) {
+    os << "AddressPacket()";
+    return os;
+}
+
+} // namespace chext_test::amba::axi4::full::detail
+
+template<>
+struct fmt::formatter<chext_test::amba::axi4::full::Packets::Address> : ostream_formatter {};
 
 struct TestBench1 : TestBenchBase {
     TestBench1()
@@ -192,15 +216,34 @@ protected:
 
         EXPECT_LT(x, y);
 
-        // chext_test::amba::axi4::full::Packets::Address ar1, ar2;
-        // ar1.addr = 0x10000;
-        // ar2.addr = 0x10000;
+        chext_test::amba::axi4::full::Packets::Address ar1, ar2;
+        ar1.addr = 0x10000;
+        ar2.addr = 0x20000;
 
-        // EXPECT_(ar1.addr.operator==(ar2.addr));
+        //EXPECT_EQ(ar1, ar2);
 
         sc_bv<8> a(89);
         sc_bv<9> b(100);
         EXPECT_EQ(a, b);
+
+        sc_bv_base xx(a);
+        sc_bv_base yy(b);
+
+        EXPECT_EQ(xx, yy);
+        EXPECT_NE(xx, yy);
+        // EXPECT_LE(xx, yy);
+
+        sc_uint_base xxx(a);
+        sc_uint_base yyy(b);
+
+        EXPECT_EQ(xxx, yyy);
+        EXPECT_NE(xxx, yyy);
+        EXPECT_LE(xxx, yyy);
+        EXPECT_GT(xxx, yyy);
+
+        wait(10000, SC_NS);
+
+        fmt::print("{}\n", sc_time_stamp().to_string());
 
         finish();
     }

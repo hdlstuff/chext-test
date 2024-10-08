@@ -54,6 +54,6 @@ struct Packets {
 
 using detail::Packets;
 
-} // namespace chext_test::amba::axi4
+} // namespace chext_test::amba::axi4::full
 
 #endif /* CHEXT_TEST_AMBA_AXI4_FULL_PACKETS_HPP_INCLUDED */
