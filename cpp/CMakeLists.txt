@@ -28,6 +28,15 @@ target_link_libraries(
     fmt::fmt
 )
 
+add_executable(
+    test1
+    src/test1.cpp
+)
+
+target_link_libraries(test1 PUBLIC chext_test)
+
+add_compile_definitions(test1 PUBLIC SC_DISABLE_API_VERSION_CHECK)
+
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/chext_test-config.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/chext_test-config.cmake @ONLY
