@@ -53,12 +53,14 @@ struct mk_dump<T, std::enable_if_t<is_jqr_v<T> && !has_dump_v<T>>> {
     static void do_dump(T const& t, fmt::memory_buffer& buf, std::tuple<Options...> const& options) {
         using tuple_utils::get_or_else;
 
-        if (get_or_else(options, opts::dump_class { true }).v)
+        auto fallback_options = get_options(t);
+
+        if (get_or_else(options, fallback_options, opts::dump_class { true }).v)
             buf.append(std::string_view(t.type_name()));
 
-        if (get_or_else(options, opts::dump_paren { true }).v)
+        if (get_or_else(options, fallback_options, opts::dump_paren { true }).v)
             buf.append(std::string_view("("));
-        else if (get_or_else(options, opts::dump_class { true }).v)
+        else if (get_or_else(options, fallback_options, opts::dump_class { true }).v)
             buf.append(std::string_view(": "));
 
         bool printSeparator = false;
@@ -81,8 +83,17 @@ struct mk_dump<T, std::enable_if_t<is_jqr_v<T> && !has_dump_v<T>>> {
 
         std::apply([&](auto... x) { (fn(x), ...); }, t.members());
 
-        if (get_or_else(options, opts::dump_paren { true }).v)
+        if (get_or_else(options, fallback_options, opts::dump_paren { true }).v)
             buf.append(std::string_view(")"));
+    }
+};
+
+template<typename T>
+struct mk_dump<T, std::enable_if_t<!is_jqr_v<T> && fmt::is_formattable<T>::value>> {
+    template<typename... Options>
+    static void do_dump(T const& t, fmt::memory_buffer& buf, std::tuple<Options...> const& options) {
+        using tuple_utils::get_or_else;
+        fmt::format_to(std::back_inserter(buf), get_or_else(options, opts::dump_fmt { "{}" }).v, t);
     }
 };
 
@@ -94,20 +105,6 @@ struct mk_dump_impl_fmt {
         fmt::format_to(std::back_inserter(buf), get_or_else(options, opts::dump_fmt { "{}" }).v, t);
     }
 };
-
-#define JQR_DEFINE_FMT_DUMP(type) \
-    template<> struct mk_dump<type, void> : mk_dump_impl_fmt<type> {};
-
-JQR_DEFINE_FMT_DUMP(int)
-JQR_DEFINE_FMT_DUMP(unsigned int)
-JQR_DEFINE_FMT_DUMP(long)
-JQR_DEFINE_FMT_DUMP(unsigned long)
-JQR_DEFINE_FMT_DUMP(long long)
-JQR_DEFINE_FMT_DUMP(unsigned long long)
-JQR_DEFINE_FMT_DUMP(std::string)
-JQR_DEFINE_FMT_DUMP(const char*)
-
-#undef JQR_DEFINE_FMT_DUMP
 
 template<typename T, typename... Options>
 inline void dump(T const& t, fmt::memory_buffer& buf, std::tuple<Options...> const& options) {

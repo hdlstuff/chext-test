@@ -43,6 +43,25 @@ inline constexpr auto member_proxy(const char* name, T& t, Options... options) {
     return member_proxy_t<T, Options...> { name, t, std::make_tuple(options...) };
 }
 
+namespace detail {
+
+template<typename T, typename Enable = void>
+struct get_options_impl {
+    static constexpr auto impl(T const& t) { return std::make_tuple(); }
+};
+
+template<typename T>
+struct get_options_impl<T, std::void_t<decltype(std::declval<T>().__jqr_options())>> {
+    static constexpr auto impl(T const& t) { return t.__jqr_options(); }
+};
+
+} // namespace detail
+
+template<typename T>
+constexpr auto get_options(T const& t) {
+    return detail::get_options_impl<T>::impl(t);
+}
+
 }; // namespace jqr
 
 /**
@@ -66,6 +85,11 @@ inline constexpr auto member_proxy(const char* name, T& t, Options... options) {
                                                                \
     constexpr auto members() const noexcept {                  \
         return std::make_tuple(__VA_ARGS__);                   \
+    }
+
+#define JQR_OPTIONS(...)                     \
+    constexpr auto __jqr_options() const {   \
+        return std::make_tuple(__VA_ARGS__); \
     }
 
 #endif /* JQR_CORE_HPP_INCLUDED */
