@@ -34,6 +34,8 @@ add_executable(
 )
 
 add_executable(test2 src/test2.cpp)
+target_link_libraries(test2 PUBLIC fmt::fmt)
+target_include_directories(test2 PUBLIC include/)
 
 target_link_libraries(test1 PUBLIC chext_test)
 

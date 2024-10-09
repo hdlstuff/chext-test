@@ -3,52 +3,42 @@
 #include <sstream>
 #include <tuple>
 
-template<typename T>
-using type_identity_t = T;
-
-#define DECL_STRUCT(name, ...)                                   \
-    static constexpr const char* struct_name() { return #name; } \
-    using this_struct = name;                                    \
-                                                                 \
-    constexpr auto tie() noexcept {                              \
-        return std::tie(__VA_ARGS__);                            \
-    }                                                            \
-                                                                 \
-    constexpr auto tie() const noexcept {                        \
-        return std::tie(__VA_ARGS__);                            \
-    }
-
-#define IMPL_COMPARISON_FOR(op) \
-    friend constexpr bool operator op(this_struct const& a, this_struct const& b) { return a.tie() op b.tie(); }
-
-#define HAS_COMPARISON      \
-    IMPL_COMPARISON_FOR(==) \
-    IMPL_COMPARISON_FOR(!=) \
-    IMPL_COMPARISON_FOR(<)  \
-    IMPL_COMPARISON_FOR(<=) \
-    IMPL_COMPARISON_FOR(>)  \
-    IMPL_COMPARISON_FOR(>=)
-
-#define HAS_TO_STRING                         \
-    std::string to_string() const {           \
-        std::ostringstream os;                \
-                                              \
-        std::apply([&](auto const&... xs) {   \
-            os << this->struct_name() << "("; \
-            ((os << xs << ", "), ...);        \
-            os << ")";                        \
-        },                                    \
-                   this->tie());              \
-        return os.str();                      \
-    }
+#include <fmt/core.h>
+#include <jqreflect.hpp>
 
 struct Test {
     int a;
     int b;
+    std::string name;
 
-    DECL_STRUCT(Test, a, b);
-    HAS_TO_STRING;
-    HAS_COMPARISON;
+    JQR_DECL(
+        Test,
+        JQR_MEMBER(a, jqr::opts::dump_fmt { "0x{:02x}" }),
+        JQR_MEMBER(b, jqr::opts::dump { false }),
+        JQR_MEMBER(name, jqr::opts::dump_fmt { "'{}'" })
+    );
+
+    void dump(fmt::memory_buffer& buf, const char* fmt) const {
+        using jqr::get_or_else;
+
+        using jqr::opts::dump;
+        using jqr::opts::dump_fmt;
+        using jqr::opts::dump_name;
+
+        auto fn = [&](auto x) {
+            if (get_or_else(x.options, dump { true }).b) {
+                if (get_or_else(x.options, dump_name { true }).b) {
+                    buf.append(std::string_view(x.name));
+                    buf.append(std::string_view("="));
+                }
+
+                jqr::dump(x.t, buf, get_or_else(x.options, dump_fmt { "{}" }).fmt);
+                buf.append(std::string_view(", "));
+            }
+        };
+
+        std::apply([&](auto... x) { (fn(x), ...); }, members());
+    }
 };
 
 struct Point {
@@ -84,7 +74,16 @@ void print_two_way_comparison(const auto& p, const auto& q) {
               << q << '\n';
 }
 
+extern const char* myString;
+
+struct Test2 {
+    void to_buffer(fmt::memory_buffer& buf, const char* fmt) const {
+        buf.append(std::string_view("Test()"));
+    }
+};
+
 int main() {
+    /*
     const Point p1 { 0, 1 }, p2 { 0, 1 }, p3 { 0, 2 };
 
     print_three_way_comparison(p1, p2);
@@ -96,9 +95,24 @@ int main() {
     print_three_way_comparison(p3, p2);
     print_two_way_comparison(p3, p2);
 
-    const Test t1 { 3, 4 }, t2 { 3, 4 };
-    std::cout << t1.to_string() << std::endl;
-    std::cout << (t1 == t2) << std::endl;
+    */
+
+    const Test t1 { 3, 4, "canberk" };
+    std::cout << jqr::to_string(t1) << std::endl;
+
+    /*
+
+    std::apply([](const auto&... xs) {
+        ((std::cout << xs.name << ", "), ...);
+        std::cout << "\n";
+    },
+               t1.members());
+    // std::cout << (t1 == t2) << std::endl;
+
+    fmt::print(myString, 9, 8);
+
+    std::cout << jqr::to_string(Test2 {}) << std::endl;
+    */
 
     /*
     int x = 8;
@@ -107,3 +121,5 @@ int main() {
     std::apply([&](auto const& x) {}, t);
     */
 }
+
+const char* myString = "test\n";
