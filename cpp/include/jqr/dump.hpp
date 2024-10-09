@@ -13,11 +13,11 @@ JQR_DEFINE_INSPECT(has_dump, std::declval<T>().dump(std::declval<fmt::memory_buf
 
 namespace opts {
 
-JQR_DEFINE_OPT(dump, bool);
-JQR_DEFINE_OPT(dump_name, bool);
-JQR_DEFINE_OPT(dump_fmt, const char*);
-JQR_DEFINE_OPT(dump_class, bool);
-JQR_DEFINE_OPT(dump_paren, bool);
+JQR_DEFINE_OPT(dump, bool)
+JQR_DEFINE_OPT(dump_name, bool)
+JQR_DEFINE_OPT(dump_fmt, const char*)
+JQR_DEFINE_OPT(dump_class, bool)
+JQR_DEFINE_OPT(dump_paren, bool)
 
 } // namespace opts
 

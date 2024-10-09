@@ -13,7 +13,7 @@ namespace opts {
 #define JQR_DEFINE_OPT(name, type) \
     struct name {                  \
         type v;                    \
-    }
+    };
 
 } // namespace opts
 
@@ -27,7 +27,7 @@ inline constexpr auto members_of(T& t) {
 }
 
 template<typename T, typename... Options>
-struct member_proxy_t {
+struct member_proxy {
     using type = T;
 
     const char* name;
@@ -39,8 +39,8 @@ struct member_proxy_t {
 };
 
 template<typename T, typename... Options>
-inline constexpr auto member_proxy(const char* name, T& t, Options... options) {
-    return member_proxy_t<T, Options...> { name, t, std::make_tuple(options...) };
+inline constexpr auto make_member_proxy(const char* name, T& t, Options... options) {
+    return member_proxy<T, Options...> { name, t, std::make_tuple(options...) };
 }
 
 namespace detail {
@@ -68,7 +68,7 @@ constexpr auto get_options(T const& t) {
  * @brief Adapts a struct member.
  *
  */
-#define JQR_MEMBER(x, ...) jqr::member_proxy(#x, x __VA_OPT__(, ) __VA_ARGS__)
+#define JQR_MEMBER(x, ...) jqr::make_member_proxy(#x, x __VA_OPT__(, ) __VA_ARGS__)
 
 /**
  * @brief Declares a jqr-enabled struct.
