@@ -9,6 +9,7 @@
 #include <fmt/chrono.h>
 #include <fmt/core.h>
 
+#include <jqr/comp_eq.hpp>
 #include <jqr/core.hpp>
 #include <jqr/dump.hpp>
 #include <jqr/hash.hpp>
@@ -68,14 +69,14 @@ struct Log {
 struct Struct1 {
     int a, b, c;
 
-    bool operator==(Struct1 const&) const = default;
-
     JQR_DECL(
         Struct1,
-        JQR_MEMBER(a),
+        JQR_MEMBER(a, o::comp_eq { false }),
         JQR_MEMBER(b),
         JQR_MEMBER(c)
     )
+
+    JQR_COMP_EQ
 };
 
 // must be in global scope
@@ -90,6 +91,33 @@ struct Struct2 {
         JQR_MEMBER(b),
         JQR_MEMBER(c, o::hash { false })
     )
+};
+
+struct VeryBareStruct {
+    int (*x)(void*);
+    const char* y;
+};
+
+struct Struct3 {
+    VeryBareStruct x;
+
+    JQR_DECL(
+        Struct3,
+        JQR_MEMBER(x)
+    )
+
+    JQR_COMP_EQ
+};
+
+struct Struct4 {
+    VeryBareStruct x;
+
+    JQR_DECL(
+        Struct4,
+        JQR_MEMBER(x, o::comp_eq { false })
+    )
+
+    JQR_COMP_EQ
 };
 
 #include <unordered_map>
@@ -123,6 +151,20 @@ int sc_main(int, char**) {
     fmt::print("object hash: s1={}, s2={}\n", jqr::hash(s1), jqr::hash(s2));
 
     std::unordered_map<Struct1, std::string> map;
+
+    Struct1 s1_a { 10, 20, 30 }, s1_b { 20, 20, 30 }, s1_c { 10, 25, 30 };
+    auto result1 = s1_a == s1_b;
+    auto result2 = s1_a == s1_c;
+    fmt::print("s1_a = {}, s1_b = {}, equals = {}\n", s1_a, s1_b, result1);
+    fmt::print("s1_a = {}, s1_c = {}, equals = {}\n", s1_a, s1_c, result2);
+
+    Struct3 s3_a, s3_b;
+    auto result3 = s3_a == s3_b;
+    fmt::print("s3_a = {}, s3_b = {}, equals = {}\n", s3_a, s3_b, result3);
+
+    Struct4 s4_a, s4_b;
+    auto result4 = s4_a == s4_b;
+    fmt::print("s4_a = {}, s4_b = {}, equals = {}\n", s4_a, s4_b, result4);
 
     return 0;
 }

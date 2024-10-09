@@ -77,7 +77,7 @@ constexpr auto get_options(T const& t) {
 #define JQR_DECL(name, ...)                                    \
     static constexpr const char* type_name() { return #name; } \
     using __jqr = void;                                        \
-    using this_struct = name;                                  \
+    using this_type = name;                                    \
                                                                \
     constexpr auto members() noexcept {                        \
         return std::make_tuple(__VA_ARGS__);                   \

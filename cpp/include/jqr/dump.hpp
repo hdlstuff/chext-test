@@ -116,7 +116,7 @@ inline void dump(T const& t, fmt::memory_buffer& buf, std::tuple<Options...> con
 #define JQR_TO_STRING                                              \
     template<typename... Options>                                  \
     std::string to_string(Options... options) const {              \
-        return jqr::to_string(*this, std::make_tuple(options...)); \
+        return ::jqr::to_string(*this, std::make_tuple(options...)); \
     }
 
 namespace fmt {
