@@ -187,18 +187,6 @@ struct fmt::formatter<sc_bv<W>> : ostream_formatter {};
 template<>
 struct fmt::formatter<sc_bv_base> : ostream_formatter {};
 
-namespace chext_test::amba::axi4::full::detail {
-
-std::ostream& operator<<(std::ostream& os, chext_test::amba::axi4::full::Packets::Address const& pkt) {
-    os << "AddressPacket()";
-    return os;
-}
-
-} // namespace chext_test::amba::axi4::full::detail
-
-template<>
-struct fmt::formatter<chext_test::amba::axi4::full::Packets::Address> : ostream_formatter {};
-
 struct TestBench1 : TestBenchBase {
     TestBench1()
         : TestBenchBase { "TestBench1" } {
@@ -220,7 +208,7 @@ protected:
         ar1.addr = 0x10000;
         ar2.addr = 0x20000;
 
-        //EXPECT_EQ(ar1, ar2);
+        EXPECT_EQ(ar1, ar2);
 
         sc_bv<8> a(89);
         sc_bv<9> b(100);

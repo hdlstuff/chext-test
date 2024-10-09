@@ -59,13 +59,13 @@ inline constexpr bool comp_eq(T const& t1, T const& t2) {
 
 } // namespace jqr
 
-#define JQR_COMP_EQ                           \
-    bool operator==(this_type const& other) { \
-        return ::jqr::comp_eq(*this, other);  \
-    }                                         \
-                                              \
-    bool operator!=(this_type const& other) { \
-        return !(*this == other);             \
+#define JQR_COMP_EQ                                 \
+    bool operator==(this_type const& other) const { \
+        return ::jqr::comp_eq(*this, other);        \
+    }                                               \
+                                                    \
+    bool operator!=(this_type const& other) const { \
+        return !(*this == other);                   \
     }
 
 #endif /* JQR_COMP_EQ_HPP_INCLUDED */
