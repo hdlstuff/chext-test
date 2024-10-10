@@ -35,10 +35,10 @@ struct Signals {
         }
 
         Packets::ReadAddress read() {
-            Packets::ReadAddress packet;
-            packet.addr = addr.read();
-            packet.prot = prot.read().to_uint();
-            return packet;
+            return {
+                .addr = addr.read();
+                .prot = prot.read().to_uint();
+            };
         }
     };
 
@@ -58,10 +58,10 @@ struct Signals {
         }
 
         Packets::ReadData read() {
-            Packets::ReadData packet;
-            packet.data = data.read();
-            packet.resp = resp.read().to_uint();
-            return packet;
+            return {
+                .data = data.read(),
+                .resp = resp.read().to_uint()
+            };
         }
     };
 
@@ -81,10 +81,10 @@ struct Signals {
         }
 
         Packets::WriteAddress read() {
-            Packets::WriteAddress packet;
-            packet.addr = addr.read();
-            packet.prot = prot.read().to_uint();
-            return packet;
+            return {
+                .addr = addr.read(),
+                .prot = prot.read().to_uint()
+            };
         }
     };
 
@@ -104,10 +104,10 @@ struct Signals {
         }
 
         Packets::WriteData read() {
-            Packets::WriteData packet;
-            packet.data = data.read();
-            packet.strb = strb.read();
-            return packet;
+            return {
+                .data = data.read(),
+                .strb = strb.read()
+            };
         }
     };
 
@@ -124,9 +124,9 @@ struct Signals {
         }
 
         Packets::WriteResponse read() {
-            Packets::WriteResponse packet;
-            packet.resp = resp.read().to_uint();
-            return packet;
+            return {
+                .resp = resp.read().to_uint()
+            };
         }
     };
 };

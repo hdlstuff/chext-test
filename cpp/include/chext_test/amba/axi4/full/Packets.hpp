@@ -3,6 +3,7 @@
 
 #include <systemc>
 
+#include <chext_test/util/ScDump.hpp>
 #include <jqr/comp_eq.hpp>
 #include <jqr/dump.hpp>
 
@@ -12,6 +13,9 @@ namespace detail {
 
 using sc_dt::sc_bv_base;
 using std::uint8_t;
+
+namespace o = jqr::opts;
+using chext_test::util::ScDumpOptions;
 
 struct Packets {
     struct Address {
@@ -29,17 +33,17 @@ struct Packets {
 
         JQR_DECL(
             Address,
-            JQR_MEMBER(id),
-            JQR_MEMBER(addr),
-            JQR_MEMBER(len),
-            JQR_MEMBER(size),
-            JQR_MEMBER(burst),
-            JQR_MEMBER(lock),
-            JQR_MEMBER(cache),
-            JQR_MEMBER(prot),
-            JQR_MEMBER(qos),
-            JQR_MEMBER(region),
-            JQR_MEMBER(user)
+            JQR_MEMBER(id, ScDumpOptions { .numrep = sc_dt::SC_HEX, .hasPrefix = true, .groupWidth = 4 }),
+            JQR_MEMBER(addr, ScDumpOptions { .numrep = sc_dt::SC_HEX, .hasPrefix = true, .groupWidth = 4 }),
+            JQR_MEMBER(len, o::dump_fmt { "{0:#04x}=0d{0:03d}" }),
+            JQR_MEMBER(size, o::dump_fmt { "{0:#05b}=0d{0:1d}" }),
+            JQR_MEMBER(burst, o::dump_fmt { "{:#04b}" }),
+            JQR_MEMBER(lock, o::dump_fmt { "{:#04b}" }),
+            JQR_MEMBER(cache, o::dump_fmt { "{:#06b}" }),
+            JQR_MEMBER(prot, o::dump_fmt { "{:#06b}" }),
+            JQR_MEMBER(qos, o::dump_fmt { "{:#06b}" }),
+            JQR_MEMBER(region, o::dump_fmt { "{:#03x}" }),
+            JQR_MEMBER(user, ScDumpOptions { .numrep = sc_dt::SC_HEX, .hasPrefix = true, .groupWidth = 4 })
         )
 
         JQR_TO_STRING
@@ -58,11 +62,11 @@ struct Packets {
 
         JQR_DECL(
             ReadData,
-            JQR_MEMBER(id),
-            JQR_MEMBER(data),
-            JQR_MEMBER(resp),
-            JQR_MEMBER(last),
-            JQR_MEMBER(user)
+            JQR_MEMBER(id, ScDumpOptions { .numrep = sc_dt::SC_HEX, .hasPrefix = true, .groupWidth = 4 }),
+            JQR_MEMBER(data, ScDumpOptions { .numrep = sc_dt::SC_HEX, .hasPrefix = true, .groupWidth = 4 }),
+            JQR_MEMBER(resp, o::dump_fmt { "{:#04b}" }),
+            JQR_MEMBER(last, o::dump_fmt { "{:#03b}" }),
+            JQR_MEMBER(user, ScDumpOptions { .numrep = sc_dt::SC_HEX, .hasPrefix = true, .groupWidth = 4 })
         )
 
         JQR_TO_STRING
@@ -77,10 +81,10 @@ struct Packets {
 
         JQR_DECL(
             WriteData,
-            JQR_MEMBER(data),
-            JQR_MEMBER(strb),
-            JQR_MEMBER(last),
-            JQR_MEMBER(user)
+            JQR_MEMBER(data, ScDumpOptions { .numrep = sc_dt::SC_HEX, .hasPrefix = true, .groupWidth = 4 }),
+            JQR_MEMBER(strb, ScDumpOptions { .numrep = sc_dt::SC_BIN, .hasPrefix = true, .groupWidth = 4 }),
+            JQR_MEMBER(last, o::dump_fmt { "{:#03b}" }),
+            JQR_MEMBER(user, ScDumpOptions { .numrep = sc_dt::SC_HEX, .hasPrefix = true, .groupWidth = 4 })
         )
 
         JQR_TO_STRING
@@ -94,9 +98,9 @@ struct Packets {
 
         JQR_DECL(
             WriteResponse,
-            JQR_MEMBER(id),
-            JQR_MEMBER(resp),
-            JQR_MEMBER(user)
+            JQR_MEMBER(id, ScDumpOptions { .numrep = sc_dt::SC_HEX, .hasPrefix = true, .groupWidth = 4 }),
+            JQR_MEMBER(resp, o::dump_fmt { "{:#04b}" }),
+            JQR_MEMBER(user, ScDumpOptions { .numrep = sc_dt::SC_HEX, .hasPrefix = true, .groupWidth = 4 })
         )
 
         JQR_TO_STRING
