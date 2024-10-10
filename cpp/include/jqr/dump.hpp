@@ -93,16 +93,7 @@ struct mk_dump<T, std::enable_if_t<!is_jqr_v<T> && fmt::is_formattable<T>::value
     template<typename... Options>
     static void do_dump(T const& t, fmt::memory_buffer& buf, std::tuple<Options...> const& options) {
         using tuple_utils::get_or_else;
-        fmt::format_to(std::back_inserter(buf), get_or_else(options, opts::dump_fmt { "{}" }).v, t);
-    }
-};
-
-template<typename T>
-struct mk_dump_impl_fmt {
-    template<typename... Options>
-    static void do_dump(T const& t, fmt::memory_buffer& buf, std::tuple<Options...> const& options) {
-        using tuple_utils::get_or_else;
-        fmt::format_to(std::back_inserter(buf), get_or_else(options, opts::dump_fmt { "{}" }).v, t);
+        fmt::format_to(std::back_inserter(buf), fmt::runtime(get_or_else(options, opts::dump_fmt { "{}" }).v), t);
     }
 };
 
@@ -113,9 +104,9 @@ inline void dump(T const& t, fmt::memory_buffer& buf, std::tuple<Options...> con
 
 } // namespace jqr
 
-#define JQR_TO_STRING                                              \
-    template<typename... Options>                                  \
-    std::string to_string(Options... options) const {              \
+#define JQR_TO_STRING                                                \
+    template<typename... Options>                                    \
+    std::string to_string(Options... options) const {                \
         return ::jqr::to_string(*this, std::make_tuple(options...)); \
     }
 

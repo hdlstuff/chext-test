@@ -187,6 +187,12 @@ struct fmt::formatter<sc_bv<W>> : ostream_formatter {};
 template<>
 struct fmt::formatter<sc_bv_base> : ostream_formatter {};
 
+template<unsigned W>
+struct fmt::formatter<sc_uint<W>> : ostream_formatter {};
+
+template<>
+struct fmt::formatter<sc_uint_base> : ostream_formatter {};
+
 struct TestBench1 : TestBenchBase {
     TestBench1()
         : TestBenchBase { "TestBench1" } {
@@ -205,8 +211,22 @@ protected:
         EXPECT_LT(x, y);
 
         chext_test::amba::axi4::full::Packets::Address ar1, ar2;
-        ar1.addr = 0x10000;
-        ar2.addr = 0x20000;
+        ar1.addr = sc_bv<20>(0x10000);
+        ar2.addr = sc_bv<20>(0x20000);
+
+        sc_bv_base num1{ sc_bv<16>(0x1400) };
+        sc_bv_base num2;
+
+        num2 = 0x1400;
+
+        fmt::print("lengths of ar1 and ar2: {}, {}\n", ar1.addr.length(), ar2.addr.length());
+        fmt::print("num1 = {}, num2 = {}, lengths: {}, {}\n", num1, num2, num1.length(), num2.length());
+
+        num1 = 0xffff'1234;
+        num2 = sc_bv<8>(0x99);
+        fmt::print("num1 = {}, num2 = {}, lengths: {}, {}\n", num1, num2, num1.length(), num2.length());
+
+        // lesson learned: sc_bv_base retains its original length that it was constructed with
 
         EXPECT_EQ(ar1, ar2);
 

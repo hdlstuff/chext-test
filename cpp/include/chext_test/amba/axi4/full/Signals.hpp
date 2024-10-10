@@ -100,19 +100,19 @@ struct Signals {
         }
 
         Packets::ReadAddress read() {
-            Packets::ReadAddress packet;
-            packet.id = id.read();
-            packet.addr = addr.read();
-            packet.len = len.read().to_uint();
-            packet.size = size.read().to_uint();
-            packet.burst = burst.read().to_uint();
-            packet.lock = bv_bool_helper<wLock>::peek(lock);
-            packet.cache = cache.read().to_uint();
-            packet.prot = prot.read().to_uint();
-            packet.qos = qos.read().to_uint();
-            packet.region = region.read().to_uint();
-            packet.user = user.read();
-            return packet;
+            return Packets::ReadAddress {
+                .id = id.read(),
+                .addr = addr.read(),
+                .len = len.read().to_uint(),
+                .size = size.read().to_uint(),
+                .burst = burst.read().to_uint(),
+                .lock = bv_bool_helper<wLock>::peek(lock),
+                .cache = cache.read().to_uint(),
+                .prot = prot.read().to_uint(),
+                .qos = qos.read().to_uint(),
+                .region = region.read().to_uint(),
+                .user = user.read()
+            };
         }
     };
 
@@ -141,13 +141,13 @@ struct Signals {
         }
 
         Packets::ReadData read() {
-            Packets::ReadData packet;
-            packet.id = id.read();
-            packet.data = data.read();
-            packet.resp = resp.read().to_uint();
-            packet.last = last.read();
-            packet.user = user.read();
-            return packet;
+            return Packets::ReadData {
+                .id = id.read(),
+                .data = data.read(),
+                .resp = resp.read().to_uint(),
+                .last = last.read(),
+                .user = user.read()
+            };
         }
     };
 
@@ -194,19 +194,19 @@ struct Signals {
         }
 
         Packets::WriteAddress read() {
-            Packets::WriteAddress packet;
-            packet.id = id.read();
-            packet.addr = addr.read();
-            packet.len = len.read().to_uint();
-            packet.size = size.read().to_uint();
-            packet.burst = burst.read().to_uint();
-            packet.lock = bv_bool_helper<wLock>::peek(lock);
-            packet.cache = cache.read().to_uint();
-            packet.prot = prot.read().to_uint();
-            packet.qos = qos.read().to_uint();
-            packet.region = region.read().to_uint();
-            packet.user = user.read();
-            return packet;
+            return Packets::WriteAddress {
+                .id = id.read(),
+                .addr = addr.read(),
+                .len = len.read().to_uint(),
+                .size = size.read().to_uint(),
+                .burst = burst.read().to_uint(),
+                .lock = bv_bool_helper<wLock>::peek(lock),
+                .cache = cache.read().to_uint(),
+                .prot = prot.read().to_uint(),
+                .qos = qos.read().to_uint(),
+                .region = region.read().to_uint(),
+                .user = user.read()
+            };
         }
     };
 
@@ -232,12 +232,12 @@ struct Signals {
         }
 
         Packets::WriteData read() {
-            Packets::WriteData packet;
-            packet.data = data.read();
-            packet.strb = strb.read();
-            packet.last = last.read();
-            packet.user = user.read();
-            return packet;
+            return Packets::WriteData {
+                .data = data.read(),
+                .strb = strb.read(),
+                .last = last.read(),
+                .user = user.read()
+            };
         }
     };
 
@@ -260,11 +260,11 @@ struct Signals {
         }
 
         Packets::WriteResponse read() {
-            Packets::WriteResponse packet;
-            packet.id = id.read();
-            packet.resp = resp.read().to_uint();
-            packet.user = user.read();
-            return packet;
+            return Packets::WriteResponse {
+                .id = id.read(),
+                .resp = resp.read().to_uint(),
+                .user = user.read()
+            };
         }
     };
 };
