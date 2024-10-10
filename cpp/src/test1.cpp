@@ -2,6 +2,7 @@
 
 #include <fmt/core.h>
 
+#include <chext_test/util/ScDump.hpp>
 #include <systemc>
 
 using namespace sc_core;
@@ -215,12 +216,18 @@ protected:
         ar2.addr = sc_bv<20>(0x20000);
 
         sc_bv_base num1{ sc_bv<16>(0x1400) };
-        sc_bv_base num2;
+        sc_bv_base num2 { 32 };
 
         num2 = 0x1400;
 
         fmt::print("lengths of ar1 and ar2: {}, {}\n", ar1.addr.length(), ar2.addr.length());
         fmt::print("num1 = {}, num2 = {}, lengths: {}, {}\n", num1, num2, num1.length(), num2.length());
+
+        using chext_test::util::scDump;
+        using chext_test::util::ScDumpOptions;
+
+        num2 = 0xFFFF'FFFF;
+        fmt::print("num2 = {}\n", scDump(num2, { .numrep = SC_HEX, .hasPrefix = true, .groupWidth = 4 }));
 
         num1 = 0xffff'1234;
         num2 = sc_bv<8>(0x99);
