@@ -60,17 +60,17 @@ struct Signals {
     struct ReadAddress {
         using value_type = Packets::ReadAddress;
 
-        sc_signal<sc_bv<wId>> id;
-        sc_signal<sc_bv<wAddr>> addr;
-        sc_signal<sc_bv<wLen>> len;
-        sc_signal<sc_bv<3>> size;
-        sc_signal<sc_bv<2>> burst;
-        sc_signal<bv_bool_t<wLock>> lock;
-        sc_signal<sc_bv<4>> cache;
-        sc_signal<sc_bv<3>> prot;
-        sc_signal<sc_bv<4>> qos;
-        sc_signal<sc_bv<4>> region;
-        sc_signal<sc_bv<wUserAR>> user;
+        sc_signal<sc_bv<wId>, SC_MANY_WRITERS> id;
+        sc_signal<sc_bv<wAddr>, SC_MANY_WRITERS> addr;
+        sc_signal<sc_bv<wLen>, SC_MANY_WRITERS> len;
+        sc_signal<sc_bv<3>, SC_MANY_WRITERS> size;
+        sc_signal<sc_bv<2>, SC_MANY_WRITERS> burst;
+        sc_signal<bv_bool_t<wLock>, SC_MANY_WRITERS> lock;
+        sc_signal<sc_bv<4>, SC_MANY_WRITERS> cache;
+        sc_signal<sc_bv<3>, SC_MANY_WRITERS> prot;
+        sc_signal<sc_bv<4>, SC_MANY_WRITERS> qos;
+        sc_signal<sc_bv<4>, SC_MANY_WRITERS> region;
+        sc_signal<sc_bv<wUserAR>, SC_MANY_WRITERS> user;
 
         ReadAddress(const char* name)
             : id(fmt::format("{}_id", name).c_str())
@@ -119,11 +119,11 @@ struct Signals {
     struct ReadData {
         using value_type = Packets::ReadData;
 
-        sc_signal<sc_bv<wId>> id;
-        sc_signal<sc_bv<wData>> data;
-        sc_signal<sc_bv<2>> resp;
-        sc_signal<bool> last;
-        sc_signal<sc_bv<wUserR>> user;
+        sc_signal<sc_bv<wId>, SC_MANY_WRITERS> id;
+        sc_signal<sc_bv<wData>, SC_MANY_WRITERS> data;
+        sc_signal<sc_bv<2>, SC_MANY_WRITERS> resp;
+        sc_signal<bool, SC_MANY_WRITERS> last;
+        sc_signal<sc_bv<wUserR>, SC_MANY_WRITERS> user;
 
         ReadData(const char* name)
             : id(fmt::format("{}_id", name).c_str())
@@ -154,17 +154,17 @@ struct Signals {
     struct WriteAddress {
         using value_type = Packets::WriteAddress;
 
-        sc_signal<sc_bv<wId>> id;
-        sc_signal<sc_bv<wAddr>> addr;
-        sc_signal<sc_bv<wLen>> len;
-        sc_signal<sc_bv<3>> size;
-        sc_signal<sc_bv<2>> burst;
-        sc_signal<bv_bool_t<wLock>> lock;
-        sc_signal<sc_bv<4>> cache;
-        sc_signal<sc_bv<3>> prot;
-        sc_signal<sc_bv<4>> qos;
-        sc_signal<sc_bv<4>> region;
-        sc_signal<sc_bv<wUserAW>> user;
+        sc_signal<sc_bv<wId>, SC_MANY_WRITERS> id;
+        sc_signal<sc_bv<wAddr>, SC_MANY_WRITERS> addr;
+        sc_signal<sc_bv<wLen>, SC_MANY_WRITERS> len;
+        sc_signal<sc_bv<3>, SC_MANY_WRITERS> size;
+        sc_signal<sc_bv<2>, SC_MANY_WRITERS> burst;
+        sc_signal<bv_bool_t<wLock>, SC_MANY_WRITERS> lock;
+        sc_signal<sc_bv<4>, SC_MANY_WRITERS> cache;
+        sc_signal<sc_bv<3>, SC_MANY_WRITERS> prot;
+        sc_signal<sc_bv<4>, SC_MANY_WRITERS> qos;
+        sc_signal<sc_bv<4>, SC_MANY_WRITERS> region;
+        sc_signal<sc_bv<wUserAW>, SC_MANY_WRITERS> user;
 
         WriteAddress(const char* name)
             : id(fmt::format("{}_id", name).c_str())
@@ -213,10 +213,10 @@ struct Signals {
     struct WriteData {
         using value_type = Packets::WriteData;
 
-        sc_signal<sc_bv<wData>> data;
-        sc_signal<sc_bv<8>> strb;
-        sc_signal<bool> last;
-        sc_signal<sc_bv<wUserW>> user;
+        sc_signal<sc_bv<wData>, SC_MANY_WRITERS> data;
+        sc_signal<sc_bv<8>, SC_MANY_WRITERS> strb;
+        sc_signal<bool, SC_MANY_WRITERS> last;
+        sc_signal<sc_bv<wUserW>, SC_MANY_WRITERS> user;
 
         WriteData(const char* name)
             : data(fmt::format("{}_data", name).c_str())
@@ -244,9 +244,9 @@ struct Signals {
     struct WriteResponse {
         using value_type = Packets::WriteResponse;
 
-        sc_signal<sc_bv<wId>> id;
-        sc_signal<sc_bv<2>> resp;
-        sc_signal<sc_bv<wUserB>> user;
+        sc_signal<sc_bv<wId>, SC_MANY_WRITERS> id;
+        sc_signal<sc_bv<2>, SC_MANY_WRITERS> resp;
+        sc_signal<sc_bv<wUserB>, SC_MANY_WRITERS> user;
 
         WriteResponse(const char* name)
             : id(fmt::format("{}_id", name).c_str())

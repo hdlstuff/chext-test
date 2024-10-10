@@ -22,8 +22,8 @@ struct Signals {
     struct ReadAddress {
         using value_type = Packets::ReadAddress;
 
-        sc_signal<sc_bv<wAddr>> addr;
-        sc_signal<sc_bv<3>> prot;
+        sc_signal<sc_bv<wAddr>, SC_MANY_WRITERS> addr;
+        sc_signal<sc_bv<3>, SC_MANY_WRITERS> prot;
 
         ReadAddress(const char* name)
             : addr(fmt::format("{}_addr", name).c_str())
@@ -45,8 +45,8 @@ struct Signals {
     struct ReadData {
         using value_type = Packets::ReadData;
 
-        sc_signal<sc_bv<wData>> data;
-        sc_signal<sc_bv<2>> resp;
+        sc_signal<sc_bv<wData>, SC_MANY_WRITERS> data;
+        sc_signal<sc_bv<2>, SC_MANY_WRITERS> resp;
 
         ReadData(const char* name)
             : data(fmt::format("{}_data", name).c_str())
@@ -68,8 +68,8 @@ struct Signals {
     struct WriteAddress {
         using value_type = Packets::WriteAddress;
 
-        sc_signal<sc_bv<wAddr>> addr;
-        sc_signal<sc_bv<3>> prot;
+        sc_signal<sc_bv<wAddr>, SC_MANY_WRITERS> addr;
+        sc_signal<sc_bv<3>, SC_MANY_WRITERS> prot;
 
         WriteAddress(const char* name)
             : addr(fmt::format("{}_addr", name).c_str())
@@ -91,8 +91,8 @@ struct Signals {
     struct WriteData {
         using value_type = Packets::WriteData;
 
-        sc_signal<sc_bv<wData>> data;
-        sc_signal<sc_bv<8>> strb;
+        sc_signal<sc_bv<wData>, SC_MANY_WRITERS> data;
+        sc_signal<sc_bv<8>, SC_MANY_WRITERS> strb;
 
         WriteData(const char* name)
             : data(fmt::format("{}_data", name).c_str())
@@ -114,7 +114,7 @@ struct Signals {
     struct WriteResponse {
         using value_type = Packets::WriteResponse;
 
-        sc_signal<sc_bv<2>> resp;
+        sc_signal<sc_bv<2>, SC_MANY_WRITERS> resp;
 
         WriteResponse(const char* name)
             : resp(fmt::format("{}_resp", name).c_str()) {}
