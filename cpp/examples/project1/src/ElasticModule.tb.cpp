@@ -123,7 +123,7 @@ private:
         };
 
         SC_SPAWN_TO(j2) {
-            dut.source2.sendAs<long>(30);
+            dut.source2.sendAsUInt64(30);
         };
 
         SC_SPAWN_TO(j2) {
