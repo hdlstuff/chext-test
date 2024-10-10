@@ -53,7 +53,7 @@ struct mk_comp_eq<T, std::enable_if_t<!jqr::is_jqr_v<T> && has_comp_eq_v<T>>> {
 };
 
 template<typename T>
-inline constexpr bool comp_eq(T const& t1, T const& t2) {
+constexpr bool comp_eq(T const& t1, T const& t2) {
     return mk_comp_eq<T>::do_comp_eq(t1, t2);
 }
 

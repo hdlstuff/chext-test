@@ -11,6 +11,6 @@
     struct name<T, std::void_t<decltype(expr)>> : std::true_type {}; \
                                                                      \
     template<typename T>                                             \
-    inline constexpr bool name##_v = name<T>::value;
+    constexpr bool name##_v = name<T>::value;
 
 #endif /* JQR_INSPECT_HPP_INCLUDED */

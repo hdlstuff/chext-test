@@ -182,6 +182,7 @@ private:
 
 #include <fmt/ostream.h>
 
+
 template<unsigned W>
 struct fmt::formatter<sc_bv<W>> : ostream_formatter {};
 
@@ -193,6 +194,7 @@ struct fmt::formatter<sc_uint<W>> : ostream_formatter {};
 
 template<>
 struct fmt::formatter<sc_uint_base> : ostream_formatter {};
+
 
 struct TestBench1 : TestBenchBase {
     TestBench1()

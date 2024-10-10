@@ -4,6 +4,9 @@
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 
+#include <jqr/dump.hpp>
+#include <jqr/inspect.hpp>
+
 #include <systemc>
 
 #include <cassert>
@@ -11,12 +14,19 @@
 
 namespace chext_test::util {
 
+namespace detail {
+
+template<typename T>
+constexpr bool ScDumpEnable_v = std::is_base_of_v<sc_dt::sc_bv_base, T> || std::is_base_of_v<sc_dt::sc_lv_base, T>;
+
+} // namespace detail
+
 struct ScDumpOptions {
-    sc_dt::sc_numrep numrep { sc_dt::SC_DEC };
-    bool hasPrefix { false };
+    sc_dt::sc_numrep numrep { sc_dt::SC_HEX };
+    bool hasPrefix { true };
     int width { -1 };
     const char* fmt { "{}" };
-    int groupWidth { -1 };
+    int groupWidth { 4 };
     char groupSep { '_' };
 };
 
@@ -24,7 +34,7 @@ template<typename T, typename Enable = void>
 struct ScDump;
 
 template<typename T>
-struct ScDump<T, std::enable_if_t<std::is_base_of_v<sc_dt::sc_bv_base, T>>> {
+struct ScDump<T, std::enable_if_t<detail::ScDumpEnable_v<T>>> {
     T const& t;
     ScDumpOptions const& options;
 
@@ -97,5 +107,20 @@ template<typename T>
 struct formatter<chext_test::util::ScDump<T>> : ostream_formatter {};
 
 }; // namespace fmt
+
+namespace jqr {
+
+template <typename T>
+struct has_custom_dumper<T, std::enable_if_t<chext_test::util::detail::ScDumpEnable_v<T>>> : std::true_type {};
+
+template<typename T>
+struct mk_dump<T, std::enable_if_t<chext_test::util::detail::ScDumpEnable_v<T>>> {
+    template<typename... Options>
+    static void do_dump(T const& t, fmt::memory_buffer& buf, std::tuple<Options...> const& options) {
+        chext_test::util::ScDump<T> { t, jqr::tuple_utils::get_or_else(options, chext_test::util::ScDumpOptions {}) }(buf);
+    }
+};
+
+} // namespace jqr
 
 #endif /* CHEXT_TEST_UTIL_DUMPSYSC_HPP_INCLUDED */

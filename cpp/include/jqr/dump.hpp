@@ -21,6 +21,12 @@ JQR_DEFINE_OPT(dump_paren, bool)
 
 } // namespace opts
 
+template<typename T, typename Enable = void>
+struct has_custom_dumper : std::false_type {};
+
+template<typename T>
+constexpr bool has_custom_dumper_v = has_custom_dumper<T>::value;
+
 template<typename T, typename... Options>
 void dump(T const& t, fmt::memory_buffer& buf, std::tuple<Options...> const& options = std::make_tuple());
 
@@ -89,7 +95,7 @@ struct mk_dump<T, std::enable_if_t<is_jqr_v<T> && !has_dump_v<T>>> {
 };
 
 template<typename T>
-struct mk_dump<T, std::enable_if_t<!is_jqr_v<T> && fmt::is_formattable<T>::value>> {
+struct mk_dump<T, std::enable_if_t<!is_jqr_v<T> && !has_custom_dumper_v<T> && fmt::is_formattable<T>::value>> {
     template<typename... Options>
     static void do_dump(T const& t, fmt::memory_buffer& buf, std::tuple<Options...> const& options) {
         using tuple_utils::get_or_else;
