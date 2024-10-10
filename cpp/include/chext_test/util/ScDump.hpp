@@ -83,7 +83,7 @@ private:
 };
 
 template<typename T>
-inline auto scDump(T const& t, ScDumpOptions const& options) {
+inline auto scDump(T const& t, ScDumpOptions const& options = ScDumpOptions{}) {
     return ScDump<T> { t, options };
 }
 

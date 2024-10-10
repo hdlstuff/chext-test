@@ -36,8 +36,8 @@ struct Signals {
 
         Packets::ReadAddress read() {
             return {
-                .addr = addr.read();
-                .prot = prot.read().to_uint();
+                .addr = addr.read(),
+                .prot = prot.read().to_uint()
             };
         }
     };
