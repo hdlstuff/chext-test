@@ -29,13 +29,15 @@ struct Signals {
             : addr(fmt::format("{}_addr", name).c_str())
             , prot(fmt::format("{}_prot", name).c_str()) {}
 
-        void write(Packets::ReadAddress const& packet) {
+        void writeFrom(value_type const& packet) {
             addr.write(packet.addr);
             prot.write(packet.prot);
         }
 
-        Packets::ReadAddress read() {
-            return {
+        void readTo(value_type& packet) {
+            packet.~value_type();
+
+            new (&packet) value_type {
                 .addr = addr.read(),
                 .prot = prot.read().to_uint()
             };
@@ -52,13 +54,15 @@ struct Signals {
             : data(fmt::format("{}_data", name).c_str())
             , resp(fmt::format("{}_resp", name).c_str()) {}
 
-        void write(Packets::ReadData const& packet) {
+        void writeFrom(value_type const& packet) {
             data.write(packet.data);
             resp.write(packet.resp);
         }
 
-        Packets::ReadData read() {
-            return {
+        void readTo(value_type& packet) {
+            packet.~value_type();
+
+            new (&packet) value_type {
                 .data = data.read(),
                 .resp = resp.read().to_uint()
             };
@@ -75,13 +79,15 @@ struct Signals {
             : addr(fmt::format("{}_addr", name).c_str())
             , prot(fmt::format("{}_prot", name).c_str()) {}
 
-        void write(Packets::WriteAddress const& packet) {
+        void writeFrom(value_type const& packet) {
             addr.write(packet.addr);
             prot.write(packet.prot);
         }
 
-        Packets::WriteAddress read() {
-            return {
+        void readTo(value_type& packet) {
+            packet.~value_type();
+
+            new (&packet) value_type {
                 .addr = addr.read(),
                 .prot = prot.read().to_uint()
             };
@@ -98,13 +104,15 @@ struct Signals {
             : data(fmt::format("{}_data", name).c_str())
             , strb(fmt::format("{}_strb", name).c_str()) {}
 
-        void write(Packets::WriteData const& packet) {
+        void writeFrom(value_type const& packet) {
             data.write(packet.data);
             strb.write(packet.strb);
         }
 
-        Packets::WriteData read() {
-            return {
+        void readTo(value_type& packet) {
+            packet.~value_type();
+
+            new (&packet) value_type {
                 .data = data.read(),
                 .strb = strb.read()
             };
@@ -119,12 +127,14 @@ struct Signals {
         WriteResponse(const char* name)
             : resp(fmt::format("{}_resp", name).c_str()) {}
 
-        void write(Packets::WriteResponse const& packet) {
+        void writeFrom(value_type const& packet) {
             resp.write(packet.resp);
         }
 
-        Packets::WriteResponse read() {
-            return {
+        void readTo(value_type& packet) {
+            packet.~value_type();
+
+            new (&packet) value_type {
                 .resp = resp.read().to_uint()
             };
         }

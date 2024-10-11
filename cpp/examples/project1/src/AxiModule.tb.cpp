@@ -28,12 +28,13 @@ struct AxiModule : sc_module {
         , clock("clock")
         , reset("reset")
         , s_axi { "s_axi", clock, reset }
+        , s_axi_lite { "s_axi_lite", clock, reset }
         , verilatedModule("dut") {
 
         verilatedModule.clock(clock);
         verilatedModule.reset(reset);
 
-        // Read Address Channel
+        // S_AXI
         verilatedModule.S_AXI_ARREADY(s_axi.ar.ready);
         verilatedModule.S_AXI_ARVALID(s_axi.ar.valid);
         verilatedModule.S_AXI_ARID(s_axi.ar.bits.id);
@@ -47,7 +48,6 @@ struct AxiModule : sc_module {
         verilatedModule.S_AXI_ARQOS(s_axi.ar.bits.qos);
         verilatedModule.S_AXI_ARREGION(s_axi.ar.bits.region);
 
-        // Read Data Channel
         verilatedModule.S_AXI_RREADY(s_axi.r.ready);
         verilatedModule.S_AXI_RVALID(s_axi.r.valid);
         verilatedModule.S_AXI_RID(s_axi.r.bits.id);
@@ -55,7 +55,6 @@ struct AxiModule : sc_module {
         verilatedModule.S_AXI_RRESP(s_axi.r.bits.resp);
         verilatedModule.S_AXI_RLAST(s_axi.r.bits.last);
 
-        // Write Address Channel
         verilatedModule.S_AXI_AWREADY(s_axi.aw.ready);
         verilatedModule.S_AXI_AWVALID(s_axi.aw.valid);
         verilatedModule.S_AXI_AWID(s_axi.aw.bits.id);
@@ -69,22 +68,46 @@ struct AxiModule : sc_module {
         verilatedModule.S_AXI_AWQOS(s_axi.aw.bits.qos);
         verilatedModule.S_AXI_AWREGION(s_axi.aw.bits.region);
 
-        // Write Data Channel
         verilatedModule.S_AXI_WREADY(s_axi.w.ready);
         verilatedModule.S_AXI_WVALID(s_axi.w.valid);
         verilatedModule.S_AXI_WDATA(s_axi.w.bits.data);
         verilatedModule.S_AXI_WSTRB(s_axi.w.bits.strb);
         verilatedModule.S_AXI_WLAST(s_axi.w.bits.last);
 
-        // Write Response Channel
         verilatedModule.S_AXI_BREADY(s_axi.b.ready);
         verilatedModule.S_AXI_BVALID(s_axi.b.valid);
         verilatedModule.S_AXI_BID(s_axi.b.bits.id);
         verilatedModule.S_AXI_BRESP(s_axi.b.bits.resp);
+
+        // S_AXI_LITE
+        verilatedModule.S_AXI_LITE_ARREADY(s_axi_lite.ar.ready);
+        verilatedModule.S_AXI_LITE_ARVALID(s_axi_lite.ar.valid);
+        verilatedModule.S_AXI_LITE_ARADDR(s_axi_lite.ar.bits.addr);
+        verilatedModule.S_AXI_LITE_ARPROT(s_axi_lite.ar.bits.prot);
+
+        verilatedModule.S_AXI_LITE_RREADY(s_axi_lite.r.ready);
+        verilatedModule.S_AXI_LITE_RVALID(s_axi_lite.r.valid);
+        verilatedModule.S_AXI_LITE_RDATA(s_axi_lite.r.bits.data);
+        verilatedModule.S_AXI_LITE_RRESP(s_axi_lite.r.bits.resp);
+
+        verilatedModule.S_AXI_LITE_AWREADY(s_axi_lite.aw.ready);
+        verilatedModule.S_AXI_LITE_AWVALID(s_axi_lite.aw.valid);
+        verilatedModule.S_AXI_LITE_AWADDR(s_axi_lite.aw.bits.addr);
+        verilatedModule.S_AXI_LITE_AWPROT(s_axi_lite.aw.bits.prot);
+
+        verilatedModule.S_AXI_LITE_WREADY(s_axi_lite.w.ready);
+        verilatedModule.S_AXI_LITE_WVALID(s_axi_lite.w.valid);
+        verilatedModule.S_AXI_LITE_WDATA(s_axi_lite.w.bits.data);
+        verilatedModule.S_AXI_LITE_WSTRB(s_axi_lite.w.bits.strb);
+
+        verilatedModule.S_AXI_LITE_BREADY(s_axi_lite.b.ready);
+        verilatedModule.S_AXI_LITE_BVALID(s_axi_lite.b.valid);
+        verilatedModule.S_AXI_LITE_BRESP(s_axi_lite.b.bits.resp);
     }
 
 public:
     axi4::full::Slave<8, 12, 64> s_axi;
+    axi4::lite::Slave<12, 64> s_axi_lite;
 
 public:
     VAxiModule verilatedModule;
@@ -158,7 +181,7 @@ private:
         j.wait();
 
         SC_SPAWN_TO(j) {
-            axi4::full::Packets::WriteAddress ar;
+            axi4::full::Packets::ReadAddress ar;
             ar.id = 12;
             ar.addr = 0x0000;
             ar.burst = 1;
@@ -171,16 +194,29 @@ private:
         SC_SPAWN_TO(j) {
             for (int i = 0; i < 4; ++i) {
                 axi4::full::Packets::ReadData r = dut.s_axi.receiveR();
-                fmt::print(
-                    "data = 0x{:016x}, id = {:03d}, last = {}\n",
-                    r.data.to_uint64(),
-                    r.id.to_int(),
-                    r.last
-                );
+                fmt::print("data = {}\n", r);
             }
 
             done_ = true;
         };
+
+        SC_SPAWN_TO(j) {
+            axi4::lite::Packets::ReadAddress ar;
+            ar.addr = 0x0AA0;
+
+            dut.s_axi_lite.sendAR(ar);
+        };
+
+        SC_SPAWN_TO(j) {
+            for (int i = 0; i < 4; ++i) {
+                auto r = dut.s_axi_lite.receiveR();
+                fmt::print("data = {}\n", r);
+            }
+
+            done_ = true;
+        };
+
+        j.wait();
     }
 };
 

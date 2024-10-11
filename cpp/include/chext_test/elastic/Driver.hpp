@@ -49,7 +49,7 @@ struct SinkBase {
     virtual std::int64_t receiveAsInt64() = 0;
     virtual std::uint64_t receiveAsUInt64() = 0;
     virtual std::string receiveAsString() = 0;
-    virtual void receiveToReference(util::Reference ref) = 0;
+    virtual void receiveToRef(util::Reference ref) = 0;
 
     template<typename T>
     T receiveAs() {
@@ -68,7 +68,7 @@ struct SinkBase {
         else CHEXT_TEST_IMPL_RECEIVEAS_BRANCH(String, std::string);
         else {
             T t;
-            receiveToReference(t);
+            receiveToRef(t);
             return t;
         }
 
@@ -131,14 +131,24 @@ struct Sink : SinkBase {
             reset,
             ready,
             valid,
-            [&] { x = bits.read(); }
+            [&] { bits.readTo(x); }
         );
 
         return x;
     }
 
-    void receiveToReference(util::Reference ref) override {
-        ref.get<BitsValueT>() = receive();
+    void receiveTo(BitsValueT &value) {
+        util::ReadyValid<PosEdgeClock, ActiveHighReset>::receive(
+            clock,
+            reset,
+            ready,
+            valid,
+            [&] { bits.readTo(value); }
+        );
+    }
+
+    void receiveToRef(util::Reference ref) override {
+        receiveTo(ref.get<BitsValueT>());
     }
 
 private:
@@ -235,7 +245,7 @@ struct Source : SourceBase {
             reset,
             ready,
             valid,
-            [&] { bits.write(x); }
+            [&] { bits.writeFrom(x); }
         );
     }
 

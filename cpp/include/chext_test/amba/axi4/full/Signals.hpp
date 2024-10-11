@@ -85,7 +85,7 @@ struct Signals {
             , region(fmt::format("{}_region", name).c_str())
             , user(fmt::format("{}_user", name).c_str()) {}
 
-        void write(Packets::ReadAddress const& packet) {
+        void writeFrom(value_type const& packet) {
             id.write(packet.id);
             addr.write(packet.addr);
             len.write(packet.len);
@@ -99,8 +99,10 @@ struct Signals {
             user.write(packet.user);
         }
 
-        Packets::ReadAddress read() {
-            return Packets::ReadAddress {
+        void readTo(value_type& packet) {
+            packet.~value_type();
+
+            new (&packet) value_type {
                 .id = id.read(),
                 .addr = addr.read(),
                 .len = len.read().to_uint(),
@@ -132,7 +134,7 @@ struct Signals {
             , last(fmt::format("{}_last", name).c_str())
             , user(fmt::format("{}_user", name).c_str()) {}
 
-        void write(Packets::ReadData const& packet) {
+        void writeFrom(value_type const& packet) {
             id.write(packet.id);
             data.write(packet.data);
             resp.write(packet.resp);
@@ -140,8 +142,10 @@ struct Signals {
             user.write(packet.user);
         }
 
-        Packets::ReadData read() {
-            return Packets::ReadData {
+        void readTo(value_type& packet) {
+            packet.~value_type();
+
+            new (&packet) value_type {
                 .id = id.read(),
                 .data = data.read(),
                 .resp = resp.read().to_uint(),
@@ -179,7 +183,7 @@ struct Signals {
             , region(fmt::format("{}_region", name).c_str())
             , user(fmt::format("{}_user", name).c_str()) {}
 
-        void write(Packets::WriteAddress const& packet) {
+        void writeFrom(value_type const& packet) {
             id.write(packet.id);
             addr.write(packet.addr);
             len.write(packet.len);
@@ -193,8 +197,10 @@ struct Signals {
             user.write(packet.user);
         }
 
-        Packets::WriteAddress read() {
-            return Packets::WriteAddress {
+        void readTo(value_type& packet) {
+            packet.~value_type();
+
+            new (&packet) value_type {
                 .id = id.read(),
                 .addr = addr.read(),
                 .len = len.read().to_uint(),
@@ -224,15 +230,17 @@ struct Signals {
             , last(fmt::format("{}_last", name).c_str())
             , user(fmt::format("{}_user", name).c_str()) {}
 
-        void write(Packets::WriteData const& packet) {
+        void writeFrom(value_type const& packet) {
             data.write(packet.data);
             strb.write(packet.strb);
             last.write(packet.last);
             user.write(packet.user);
         }
 
-        Packets::WriteData read() {
-            return Packets::WriteData {
+        void readTo(value_type& packet) {
+            packet.~value_type();
+
+            new (&packet) value_type {
                 .data = data.read(),
                 .strb = strb.read(),
                 .last = last.read(),
@@ -253,14 +261,16 @@ struct Signals {
             , resp(fmt::format("{}_resp", name).c_str())
             , user(fmt::format("{}_user", name).c_str()) {}
 
-        void write(Packets::WriteResponse const& packet) {
+        void writeFrom(value_type const& packet) {
             id.write(packet.id);
             resp.write(packet.resp);
             user.write(packet.user);
         }
 
-        Packets::WriteResponse read() {
-            return Packets::WriteResponse {
+        void readTo(value_type& packet) {
+            packet.~value_type();
+
+            new (&packet) value_type {
                 .id = id.read(),
                 .resp = resp.read().to_uint(),
                 .user = user.read()
