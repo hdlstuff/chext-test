@@ -1,15 +1,57 @@
 #ifndef CHEXT_TEST_ELASTIC_DRIVER_HPP_INCLUDED
 #define CHEXT_TEST_ELASTIC_DRIVER_HPP_INCLUDED
 
-#include <chext_test/bits/Bits.hpp>
+#include <chext_test/elastic/Convert.hpp>
 #include <chext_test/util/ReadyValid.hpp>
 #include <chext_test/util/Reference.hpp>
+
+#include <jqr/inspect.hpp>
 
 #include <systemc>
 
 #include <fmt/core.h>
 
 namespace chext_test::elastic {
+
+JQR_DEFINE_INSPECT(HasRead, &T::read)
+JQR_DEFINE_INSPECT(HasReadTo, &T::readTo)
+
+template<typename SignalT, typename ValueT, typename Enable = void>
+struct ReadHandler;
+
+template<typename SignalT, typename ValueT>
+struct ReadHandler<SignalT, ValueT, std::enable_if_t<HasRead_v<SignalT> && !HasReadTo_v<SignalT>>> {
+    static void read(SignalT const& signal, ValueT& value) {
+        value = signal.read();
+    }
+};
+
+template<typename SignalT, typename ValueT>
+struct ReadHandler<SignalT, ValueT, std::enable_if_t<HasReadTo_v<SignalT>>> {
+    static void read(SignalT const& signal, ValueT& value) {
+        signal.readTo(value);
+    }
+};
+
+JQR_DEFINE_INSPECT(HasWrite, &T::write)
+JQR_DEFINE_INSPECT(HasWriteFrom, &T::writeFrom)
+
+template<typename SignalT, typename ValueT, typename Enable = void>
+struct WriteHandler;
+
+template<typename SignalT, typename ValueT>
+struct WriteHandler<SignalT, ValueT, std::enable_if_t<HasWrite_v<SignalT> && !HasWriteFrom_v<SignalT>>> {
+    static void write(SignalT& signal, ValueT const& value) {
+        signal.write(value);
+    }
+};
+
+template<typename SignalT, typename ValueT>
+struct WriteHandler<SignalT, ValueT, std::enable_if_t<HasWriteFrom_v<SignalT>>> {
+    static void write(SignalT& signal, ValueT const& value) {
+        signal.writeFrom(value);
+    }
+};
 
 namespace detail {
 
@@ -40,10 +82,6 @@ using namespace sc_core;
  */
 
 struct SinkBase {
-    virtual int receiveAsInt() = 0;
-    virtual unsigned int receiveAsUInt() = 0;
-    virtual long receiveAsLong() = 0;
-    virtual unsigned long receiveAsULong() = 0;
     virtual std::int32_t receiveAsInt32() = 0;
     virtual std::uint32_t receiveAsUInt32() = 0;
     virtual std::int64_t receiveAsInt64() = 0;
@@ -57,11 +95,7 @@ struct SinkBase {
     if constexpr (std::is_same_v<T, param2>)             \
     return receiveAs##param1()
 
-        /**/ CHEXT_TEST_IMPL_RECEIVEAS_BRANCH(Int, int);
-        else CHEXT_TEST_IMPL_RECEIVEAS_BRANCH(UInt, unsigned int);
-        else CHEXT_TEST_IMPL_RECEIVEAS_BRANCH(Long, long);
-        else CHEXT_TEST_IMPL_RECEIVEAS_BRANCH(ULong, unsigned long);
-        else CHEXT_TEST_IMPL_RECEIVEAS_BRANCH(Int32, std::int32_t);
+        /**/ CHEXT_TEST_IMPL_RECEIVEAS_BRANCH(Int32, std::int32_t);
         else CHEXT_TEST_IMPL_RECEIVEAS_BRANCH(UInt32, std::uint32_t);
         else CHEXT_TEST_IMPL_RECEIVEAS_BRANCH(Int64, std::int64_t);
         else CHEXT_TEST_IMPL_RECEIVEAS_BRANCH(UInt64, std::uint64_t);
@@ -97,24 +131,11 @@ struct Sink : SinkBase {
         , valid { fmt::format("{}_valid", name).c_str() } {
     }
 
-#define CHEXT_TEST_IMPL_RECEIVEAS_FOR(param1, param2)                     \
-    param2 receiveAs##param1() override {                                 \
-        param2 x;                                                         \
-                                                                          \
-        util::ReadyValid<PosEdgeClock, ActiveHighReset>::receive(         \
-            clock,                                                        \
-            reset,                                                        \
-            ready,                                                        \
-            valid,                                                        \
-            [&] { bits::ReadHelper<BitsSignalT, param2>::read(bits, x); } \
-        );                                                                \
-        return x;                                                         \
+#define CHEXT_TEST_IMPL_RECEIVEAS_FOR(param1, param2)             \
+    param2 receiveAs##param1() override {                         \
+        return Converter<BitsValueT, param2>::convert(receive()); \
     }
 
-    CHEXT_TEST_IMPL_RECEIVEAS_FOR(Int, int)
-    CHEXT_TEST_IMPL_RECEIVEAS_FOR(UInt, unsigned int)
-    CHEXT_TEST_IMPL_RECEIVEAS_FOR(Long, long)
-    CHEXT_TEST_IMPL_RECEIVEAS_FOR(ULong, unsigned long)
     CHEXT_TEST_IMPL_RECEIVEAS_FOR(Int32, std::int32_t)
     CHEXT_TEST_IMPL_RECEIVEAS_FOR(UInt32, std::uint32_t)
     CHEXT_TEST_IMPL_RECEIVEAS_FOR(Int64, std::int64_t)
@@ -123,28 +144,20 @@ struct Sink : SinkBase {
 
 #undef CHEXT_TEST_IMPL_RECEIVEAS_FOR
 
-    BitsValueT receive() {
-        BitsValueT x;
-
+    void receiveTo(BitsValueT& value) {
         util::ReadyValid<PosEdgeClock, ActiveHighReset>::receive(
             clock,
             reset,
             ready,
             valid,
-            [&] { bits.readTo(x); }
+            [&] { ReadHandler<BitsSignalT, BitsValueT>::read(bits, value); }
         );
-
-        return x;
     }
 
-    void receiveTo(BitsValueT &value) {
-        util::ReadyValid<PosEdgeClock, ActiveHighReset>::receive(
-            clock,
-            reset,
-            ready,
-            valid,
-            [&] { bits.readTo(value); }
-        );
+    BitsValueT receive() {
+        BitsValueT value;
+        receiveTo(value);
+        return value;
     }
 
     void receiveToRef(util::Reference ref) override {
@@ -162,10 +175,6 @@ public:
 };
 
 struct SourceBase {
-    virtual void sendAsInt(int const& x) = 0;
-    virtual void sendAsUInt(unsigned int const& x) = 0;
-    virtual void sendAsLong(long const& x) = 0;
-    virtual void sendAsULong(unsigned long const& x) = 0;
     virtual void sendAsInt32(std::int32_t const& x) = 0;
     virtual void sendAsUInt32(std::uint32_t const& x) = 0;
     virtual void sendAsInt64(std::int64_t const& x) = 0;
@@ -180,11 +189,7 @@ struct SourceBase {
     if constexpr (std::is_same_v<T, param2>)          \
     sendAs##param1(t)
 
-        /**/ CHEXT_TEST_IMPL_SENDAS_BRANCH(Int, int);
-        else CHEXT_TEST_IMPL_SENDAS_BRANCH(UInt, unsigned int);
-        else CHEXT_TEST_IMPL_SENDAS_BRANCH(Long, long);
-        else CHEXT_TEST_IMPL_SENDAS_BRANCH(ULong, unsigned long);
-        else CHEXT_TEST_IMPL_SENDAS_BRANCH(Int32, std::int32_t);
+        /**/ CHEXT_TEST_IMPL_SENDAS_BRANCH(Int32, std::int32_t);
         else CHEXT_TEST_IMPL_SENDAS_BRANCH(UInt32, std::uint32_t);
         else CHEXT_TEST_IMPL_SENDAS_BRANCH(Int64, std::int64_t);
         else CHEXT_TEST_IMPL_SENDAS_BRANCH(UInt64, std::uint64_t);
@@ -216,21 +221,11 @@ struct Source : SourceBase {
         , valid { fmt::format("{}_valid", name).c_str() } {
     }
 
-#define CHEXT_TEST_IMPL_SENDAS_FOR(param1, param2)                          \
-    void sendAs##param1(param2 const& x) override {                         \
-        util::ReadyValid<PosEdgeClock, ActiveHighReset>::send(              \
-            clock,                                                          \
-            reset,                                                          \
-            ready,                                                          \
-            valid,                                                          \
-            [&] { bits::WriteHelper<BitsSignalT, param2>::write(bits, x); } \
-        );                                                                  \
+#define CHEXT_TEST_IMPL_SENDAS_FOR(param1, param2)       \
+    void sendAs##param1(param2 const& x) {               \
+        send(Converter<param2, BitsValueT>::convert(x)); \
     }
 
-    CHEXT_TEST_IMPL_SENDAS_FOR(Int, int)
-    CHEXT_TEST_IMPL_SENDAS_FOR(UInt, unsigned int)
-    CHEXT_TEST_IMPL_SENDAS_FOR(Long, long)
-    CHEXT_TEST_IMPL_SENDAS_FOR(ULong, unsigned long)
     CHEXT_TEST_IMPL_SENDAS_FOR(Int32, std::int32_t)
     CHEXT_TEST_IMPL_SENDAS_FOR(UInt32, std::uint32_t)
     CHEXT_TEST_IMPL_SENDAS_FOR(Int64, std::int64_t)
@@ -239,13 +234,13 @@ struct Source : SourceBase {
 
 #undef CHEXT_TEST_IMPL_SENDAS_FOR
 
-    void send(BitsValueT const& x) {
+    void send(BitsValueT const& value) {
         util::ReadyValid<PosEdgeClock, ActiveHighReset>::send(
             clock,
             reset,
             ready,
             valid,
-            [&] { bits.writeFrom(x); }
+            [&] { WriteHandler<BitsSignalT, BitsValueT>::write(bits, value); }
         );
     }
 

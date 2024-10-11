@@ -99,7 +99,7 @@ struct Signals {
             user.write(packet.user);
         }
 
-        void readTo(value_type& packet) {
+        void readTo(value_type& packet) const {
             packet.~value_type();
 
             new (&packet) value_type {
@@ -142,7 +142,7 @@ struct Signals {
             user.write(packet.user);
         }
 
-        void readTo(value_type& packet) {
+        void readTo(value_type& packet) const {
             packet.~value_type();
 
             new (&packet) value_type {
@@ -197,7 +197,7 @@ struct Signals {
             user.write(packet.user);
         }
 
-        void readTo(value_type& packet) {
+        void readTo(value_type& packet) const {
             packet.~value_type();
 
             new (&packet) value_type {
@@ -237,7 +237,7 @@ struct Signals {
             user.write(packet.user);
         }
 
-        void readTo(value_type& packet) {
+        void readTo(value_type& packet) const {
             packet.~value_type();
 
             new (&packet) value_type {
@@ -267,7 +267,7 @@ struct Signals {
             user.write(packet.user);
         }
 
-        void readTo(value_type& packet) {
+        void readTo(value_type& packet) const {
             packet.~value_type();
 
             new (&packet) value_type {

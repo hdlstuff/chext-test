@@ -11,6 +11,8 @@ using namespace sc_dt;
 #include <VElasticModule.h>
 #include <verilated_vcd_sc.h>
 
+#include <fmt/core.h>
+
 struct ElasticModule : sc_module {
     SC_HAS_PROCESS(ElasticModule);
 
@@ -120,16 +122,18 @@ private:
 
         SC_SPAWN_TO(j2) {
             dut.source1.send(30);
+            dut.source1.sendAsString("0d98");
         };
 
         SC_SPAWN_TO(j2) {
             dut.source2.sendAsUInt64(30);
+            dut.source2.sendAsString("0d30");
         };
 
         SC_SPAWN_TO(j2) {
             auto x = sink.receiveAsUInt64();
-            // std::cout << "received: " << sink.receiveAsULong() << std::endl;
             std::cout << "received: " << x << std::endl;
+            std::cout << "received: " << sink.receiveAsInt64() << std::endl;
         };
 
         j2.wait();
