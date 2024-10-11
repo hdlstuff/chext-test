@@ -47,6 +47,7 @@ struct Packets {
         )
 
         JQR_TO_STRING
+        JQR_OSTREAM
         JQR_COMP_EQ
     };
 
@@ -70,6 +71,7 @@ struct Packets {
         )
 
         JQR_TO_STRING
+        JQR_OSTREAM
         JQR_COMP_EQ
     };
 
@@ -88,6 +90,7 @@ struct Packets {
         )
 
         JQR_TO_STRING
+        JQR_OSTREAM
         JQR_COMP_EQ
     };
 
@@ -104,6 +107,7 @@ struct Packets {
         )
 
         JQR_TO_STRING
+        JQR_OSTREAM
         JQR_COMP_EQ
     };
 };

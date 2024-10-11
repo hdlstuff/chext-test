@@ -116,6 +116,11 @@ inline void dump(T const& t, fmt::memory_buffer& buf, std::tuple<Options...> con
         return ::jqr::to_string(*this, std::make_tuple(options...)); \
     }
 
+#define JQR_OSTREAM                                                         \
+    friend std::ostream& operator<<(std::ostream& os, this_type const& t) { \
+        return (os << ::jqr::to_string(t));                                 \
+    }
+
 namespace fmt {
 
 template<typename T>
