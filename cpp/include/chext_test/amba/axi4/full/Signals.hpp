@@ -16,7 +16,8 @@ template<unsigned WIDTH>
 struct bv_bool_helper {
     using type = sc_bv<WIDTH>;
 
-    static auto peek(sc_signal<type> const& lock) {
+    template <sc_writer_policy WP>
+    static auto peek(sc_signal<type, WP> const& lock) {
         return lock.read().to_uint();
     }
 };
@@ -25,7 +26,8 @@ template<>
 struct bv_bool_helper<1> {
     using type = bool;
 
-    static auto peek(sc_signal<type> const& lock) {
+    template <sc_writer_policy WP>
+    static auto peek(sc_signal<type, WP> const& lock) {
         return lock.read();
     }
 };
