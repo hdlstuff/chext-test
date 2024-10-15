@@ -16,7 +16,7 @@ template<unsigned WIDTH>
 struct bv_bool_helper {
     using type = sc_bv<WIDTH>;
 
-    template <sc_writer_policy WP>
+    template<sc_writer_policy WP>
     static auto peek(sc_signal<type, WP> const& lock) {
         return lock.read().to_uint();
     }
@@ -26,7 +26,7 @@ template<>
 struct bv_bool_helper<1> {
     using type = bool;
 
-    template <sc_writer_policy WP>
+    template<sc_writer_policy WP>
     static auto peek(sc_signal<type, WP> const& lock) {
         return lock.read();
     }
@@ -35,15 +35,19 @@ struct bv_bool_helper<1> {
 template<unsigned WIDTH>
 using bv_bool_t = typename bv_bool_helper<WIDTH>::type;
 
+constexpr unsigned notZeroOr(unsigned x, unsigned y) {
+    return x > 0 ? x : y;
+}
+
 template<
     unsigned ID_WIDTH,
     unsigned ADDR_WIDTH,
     unsigned DATA_WIDTH,
-    unsigned ARUSER_WIDTH = 32,
-    unsigned RUSER_WIDTH = 32,
-    unsigned AWUSER_WIDTH = 32,
-    unsigned WUSER_WIDTH = 32,
-    unsigned BUSER_WIDTH = 32,
+    unsigned ARUSER_WIDTH = 0,
+    unsigned RUSER_WIDTH = 0,
+    unsigned AWUSER_WIDTH = 0,
+    unsigned WUSER_WIDTH = 0,
+    unsigned BUSER_WIDTH = 0,
     bool AXI3_COMPAT = false>
 struct Signals {
     static constexpr unsigned wId = ID_WIDTH;
@@ -72,7 +76,7 @@ struct Signals {
         sc_signal<sc_bv<3>, SC_MANY_WRITERS> prot;
         sc_signal<sc_bv<4>, SC_MANY_WRITERS> qos;
         sc_signal<sc_bv<4>, SC_MANY_WRITERS> region;
-        sc_signal<sc_bv<wUserAR>, SC_MANY_WRITERS> user;
+        sc_signal<sc_bv<notZeroOr(wUserAR, 32)>, SC_MANY_WRITERS> user;
 
         ReadAddress(const char* name)
             : id(fmt::format("{}_id", name).c_str())
@@ -127,7 +131,7 @@ struct Signals {
         sc_signal<sc_bv<wData>, SC_MANY_WRITERS> data;
         sc_signal<sc_bv<2>, SC_MANY_WRITERS> resp;
         sc_signal<bool, SC_MANY_WRITERS> last;
-        sc_signal<sc_bv<wUserR>, SC_MANY_WRITERS> user;
+        sc_signal<sc_bv<notZeroOr(wUserR, 32)>, SC_MANY_WRITERS> user;
 
         ReadData(const char* name)
             : id(fmt::format("{}_id", name).c_str())
@@ -170,7 +174,7 @@ struct Signals {
         sc_signal<sc_bv<3>, SC_MANY_WRITERS> prot;
         sc_signal<sc_bv<4>, SC_MANY_WRITERS> qos;
         sc_signal<sc_bv<4>, SC_MANY_WRITERS> region;
-        sc_signal<sc_bv<wUserAW>, SC_MANY_WRITERS> user;
+        sc_signal<sc_bv<notZeroOr(wUserAW, 32)>, SC_MANY_WRITERS> user;
 
         WriteAddress(const char* name)
             : id(fmt::format("{}_id", name).c_str())
@@ -224,7 +228,7 @@ struct Signals {
         sc_signal<sc_bv<wData>, SC_MANY_WRITERS> data;
         sc_signal<sc_bv<8>, SC_MANY_WRITERS> strb;
         sc_signal<bool, SC_MANY_WRITERS> last;
-        sc_signal<sc_bv<wUserW>, SC_MANY_WRITERS> user;
+        sc_signal<sc_bv<notZeroOr(wUserW, 32)>, SC_MANY_WRITERS> user;
 
         WriteData(const char* name)
             : data(fmt::format("{}_data", name).c_str())
@@ -256,7 +260,7 @@ struct Signals {
 
         sc_signal<sc_bv<wId>, SC_MANY_WRITERS> id;
         sc_signal<sc_bv<2>, SC_MANY_WRITERS> resp;
-        sc_signal<sc_bv<wUserB>, SC_MANY_WRITERS> user;
+        sc_signal<sc_bv<notZeroOr(wUserB, 32)>, SC_MANY_WRITERS> user;
 
         WriteResponse(const char* name)
             : id(fmt::format("{}_id", name).c_str())
