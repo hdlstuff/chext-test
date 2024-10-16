@@ -17,6 +17,8 @@ struct Signals {
     static constexpr unsigned wAddr = ADDR_WIDTH;
     static constexpr unsigned wData = DATA_WIDTH;
 
+    static constexpr unsigned wStrb = wData >> 3;
+
     static_assert(DATA_WIDTH == 32 || DATA_WIDTH == 64);
 
     struct ReadAddress {
@@ -98,7 +100,7 @@ struct Signals {
         using value_type = Packets::WriteData;
 
         sc_signal<sc_bv<wData>, SC_MANY_WRITERS> data;
-        sc_signal<sc_bv<8>, SC_MANY_WRITERS> strb;
+        sc_signal<sc_bv<wStrb>, SC_MANY_WRITERS> strb;
 
         WriteData(const char* name)
             : data(fmt::format("{}_data", name).c_str())

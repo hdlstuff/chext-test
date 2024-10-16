@@ -17,6 +17,11 @@ using elastic::Source;
 
 using namespace sc_core;
 
+struct Config {
+    unsigned wAddr;
+    unsigned wData;
+};
+
 struct MasterBase {
     using PacketsT = Packets;
 
@@ -25,6 +30,8 @@ struct MasterBase {
     virtual PacketsT::WriteAddress receiveAW() = 0;
     virtual PacketsT::WriteData receiveW() = 0;
     virtual void sendB(PacketsT::WriteResponse const& x) = 0;
+
+    virtual Config const& config() const noexcept = 0;
 
     virtual ~MasterBase() = default;
 };
@@ -68,7 +75,17 @@ struct Master : MasterBase {
         b.send(x);
     }
 
+    virtual Config const& config() const noexcept {
+        return config_;
+    }
+
     virtual ~Master() = default;
+
+private:
+    Config config_ {
+        .wAddr = ADDR_WIDTH,
+        .wData = DATA_WIDTH
+    };
 };
 
 struct SlaveBase {
@@ -79,6 +96,8 @@ struct SlaveBase {
     virtual void sendAW(PacketsT::WriteAddress const& x) = 0;
     virtual void sendW(PacketsT::WriteData const& x) = 0;
     virtual PacketsT::WriteResponse receiveB() = 0;
+
+    virtual Config const& config() const noexcept = 0;
 
     virtual ~SlaveBase() = default;
 };
@@ -122,12 +141,27 @@ struct Slave : SlaveBase {
         return b.receive();
     }
 
+    virtual Config const& config() const noexcept {
+        return config_;
+    }
+
     virtual ~Slave() = default;
+
+private:
+    Config config_ {
+        .wAddr = ADDR_WIDTH,
+        .wData = DATA_WIDTH
+    };
 };
 
 } // namespace detail
 
+using detail::Config;
+
+using detail::MasterBase;
 using detail::Master;
+
+using detail::SlaveBase;
 using detail::Slave;
 
 } // namespace chext_test::amba::axi4::lite

@@ -216,7 +216,12 @@ private:
 
 } // namespace detail
 
+using detail::Config;
+
+using detail::MasterBase;
 using detail::Master;
+
+using detail::SlaveBase;
 using detail::Slave;
 
 } // namespace chext_test::amba::axi4::full
