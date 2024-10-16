@@ -68,7 +68,7 @@ struct Signals {
     struct ReadAddress {
         using value_type = Packets::ReadAddress;
 
-        sc_signal<sc_bv<wId>, SC_MANY_WRITERS> id;
+        sc_signal<sc_bv<notZeroOr(wId, 32)>, SC_MANY_WRITERS> id;
         sc_signal<sc_bv<wAddr>, SC_MANY_WRITERS> addr;
         sc_signal<sc_bv<wLen>, SC_MANY_WRITERS> len;
         sc_signal<sc_bv<3>, SC_MANY_WRITERS> size;
@@ -129,7 +129,7 @@ struct Signals {
     struct ReadData {
         using value_type = Packets::ReadData;
 
-        sc_signal<sc_bv<wId>, SC_MANY_WRITERS> id;
+        sc_signal<sc_bv<notZeroOr(wId, 32)>, SC_MANY_WRITERS> id;
         sc_signal<sc_bv<wData>, SC_MANY_WRITERS> data;
         sc_signal<sc_bv<2>, SC_MANY_WRITERS> resp;
         sc_signal<bool, SC_MANY_WRITERS> last;
@@ -166,7 +166,7 @@ struct Signals {
     struct WriteAddress {
         using value_type = Packets::WriteAddress;
 
-        sc_signal<sc_bv<wId>, SC_MANY_WRITERS> id;
+        sc_signal<sc_bv<notZeroOr(wId, 32)>, SC_MANY_WRITERS> id;
         sc_signal<sc_bv<wAddr>, SC_MANY_WRITERS> addr;
         sc_signal<sc_bv<wLen>, SC_MANY_WRITERS> len;
         sc_signal<sc_bv<3>, SC_MANY_WRITERS> size;
@@ -260,7 +260,7 @@ struct Signals {
     struct WriteResponse {
         using value_type = Packets::WriteResponse;
 
-        sc_signal<sc_bv<wId>, SC_MANY_WRITERS> id;
+        sc_signal<sc_bv<notZeroOr(wId, 32)>, SC_MANY_WRITERS> id;
         sc_signal<sc_bv<2>, SC_MANY_WRITERS> resp;
         sc_signal<sc_bv<notZeroOr(wUserB, 32)>, SC_MANY_WRITERS> user;
 

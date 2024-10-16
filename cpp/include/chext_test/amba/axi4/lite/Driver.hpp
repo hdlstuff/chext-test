@@ -20,6 +20,8 @@ using namespace sc_core;
 struct Config {
     unsigned wAddr;
     unsigned wData;
+
+    unsigned wStrb = wData >> 3;
 };
 
 struct MasterBase {

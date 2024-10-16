@@ -28,8 +28,10 @@ struct Config {
     unsigned wUserB { 0 };
 
     bool axi3Compat { false };
+
     unsigned wLen = axi3Compat ? 4 : 8;
     unsigned wLock = axi3Compat ? 2 : 1;
+    unsigned wStrb = wData >> 3;
 };
 
 struct MasterBase {

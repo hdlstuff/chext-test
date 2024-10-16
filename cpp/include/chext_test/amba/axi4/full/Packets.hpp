@@ -11,6 +11,7 @@ namespace chext_test::amba::axi4::full {
 
 namespace detail {
 
+using sc_dt::sc_bv;
 using sc_dt::sc_bv_base;
 using std::uint8_t;
 
@@ -29,7 +30,7 @@ struct Packets {
         uint8_t prot;
         uint8_t qos;
         uint8_t region;
-        sc_bv_base user;
+        sc_bv_base user { sc_bv<32>(0) };
 
         JQR_DECL(
             Address,
@@ -59,7 +60,7 @@ struct Packets {
         sc_bv_base data;
         uint8_t resp;
         bool last;
-        sc_bv_base user;
+        sc_bv_base user { sc_bv<32>(0) };
 
         JQR_DECL(
             ReadData,
@@ -79,7 +80,7 @@ struct Packets {
         sc_bv_base data;
         sc_bv_base strb;
         bool last;
-        sc_bv_base user;
+        sc_bv_base user { sc_bv<32>(0) };
 
         JQR_DECL(
             WriteData,
@@ -97,7 +98,7 @@ struct Packets {
     struct WriteResponse {
         sc_bv_base id;
         uint8_t resp;
-        sc_bv_base user;
+        sc_bv_base user { sc_bv<32>(0) };
 
         JQR_DECL(
             WriteResponse,

@@ -8,8 +8,8 @@ namespace chext_test::util::detail {
 
 constexpr struct {
     template<typename T>
-    void operator+(T&& t) const {
-        ::sc_core::sc_spawn(std::forward<T>(t));
+    auto operator+(T&& t) const {
+        return ::sc_core::sc_spawn(std::forward<T>(t));
     }
 } sc_spawn_helper;
 
