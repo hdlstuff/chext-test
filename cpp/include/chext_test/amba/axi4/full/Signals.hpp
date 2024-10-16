@@ -63,6 +63,8 @@ struct Signals {
     static constexpr unsigned wLen = axi3Compat ? 4 : 8;
     static constexpr unsigned wLock = axi3Compat ? 2 : 1;
 
+    static constexpr unsigned wStrb = wData >> 3;
+
     struct ReadAddress {
         using value_type = Packets::ReadAddress;
 
@@ -226,7 +228,7 @@ struct Signals {
         using value_type = Packets::WriteData;
 
         sc_signal<sc_bv<wData>, SC_MANY_WRITERS> data;
-        sc_signal<sc_bv<8>, SC_MANY_WRITERS> strb;
+        sc_signal<sc_bv<wStrb>, SC_MANY_WRITERS> strb;
         sc_signal<bool, SC_MANY_WRITERS> last;
         sc_signal<sc_bv<notZeroOr(wUserW, 32)>, SC_MANY_WRITERS> user;
 
