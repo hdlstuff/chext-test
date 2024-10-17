@@ -32,6 +32,22 @@ struct Config {
     unsigned wLen = axi3Compat ? 4 : 8;
     unsigned wLock = axi3Compat ? 2 : 1;
     unsigned wStrb = wData >> 3;
+
+    JQR_DECL(
+        Config,
+        JQR_MEMBER(wId),
+        JQR_MEMBER(wAddr),
+        JQR_MEMBER(wData),
+        JQR_MEMBER(wUserAR),
+        JQR_MEMBER(wUserR),
+        JQR_MEMBER(wUserAW),
+        JQR_MEMBER(wUserW),
+        JQR_MEMBER(wUserB),
+        JQR_MEMBER(axi3Compat),
+        JQR_MEMBER(wLen),
+        JQR_MEMBER(wLock),
+        JQR_MEMBER(wStrb)
+    )
 };
 
 struct MasterBase {

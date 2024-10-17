@@ -22,6 +22,13 @@ struct Config {
     unsigned wData;
 
     unsigned wStrb = wData >> 3;
+
+    JQR_DECL(
+        Config,
+        JQR_MEMBER(wAddr),
+        JQR_MEMBER(wData),
+        JQR_MEMBER(wStrb)
+    )
 };
 
 struct MasterBase {
@@ -160,11 +167,11 @@ private:
 
 using detail::Config;
 
-using detail::MasterBase;
 using detail::Master;
+using detail::MasterBase;
 
-using detail::SlaveBase;
 using detail::Slave;
+using detail::SlaveBase;
 
 } // namespace chext_test::amba::axi4::lite
 
