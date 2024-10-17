@@ -15,7 +15,7 @@ namespace chext_test {
 #define CHEXT_TEST_EXPECT_GE(a, b) TestBenchBase::__expect_ge((a), (b), __FILE__, __LINE__, #a, #b)
 #define CHEXT_TEST_EXPECT_EQ(a, b) TestBenchBase::__expect_eq((a), (b), __FILE__, __LINE__, #a, #b)
 
-#define CHEXT_TEST_ASSERT(x) TestBenchBase::__assert((x), __FILE__, __LINE__, #x)
+#define CHEXT_TEST_ASSERT(x) TestBenchBase::__assert_((x), __FILE__, __LINE__, #x)
 #define CHEXT_TEST_ASSERT_EQ(a, b) TestBenchBase::__assert_eq((a), (b), __FILE__, __LINE__, #a, #b)
 #define CHEXT_TEST_ASSERT_NE(a, b) TestBenchBase::__assert_ne((a), (b), __FILE__, __LINE__, #a, #b)
 #define CHEXT_TEST_ASSERT_LT(a, b) TestBenchBase::__assert_lt((a), (b), __FILE__, __LINE__, #a, #b)
