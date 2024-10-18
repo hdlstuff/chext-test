@@ -155,10 +155,10 @@ protected:
     }
 
 #define ASSERT_BINARY_OP(param1, param2, param3, param4)                                                \
-    template<typename T>                                                                                \
+    template<typename T1, typename T2>                                                                  \
     void __assert_##param1(                                                                             \
-        T const& a,                                                                                     \
-        T const& b,                                                                                     \
+        T1 const& a,                                                                                    \
+        T2 const& b,                                                                                    \
         char const* file = nullptr,                                                                     \
         int line = -1,                                                                                  \
         char const* a_str = nullptr,                                                                    \
