@@ -26,6 +26,10 @@ struct ReadyValid {
         auto clock_ = constBoolWrapper<!PosEdgeClock>(clock);
         auto reset_ = constBoolWrapper<!ActiveHighReset>(reset);
 
+        // wait until all the transitions happen
+        sc_core::wait(sc_core::SC_ZERO_TIME);
+
+        // if the clock is high, it is after a posedge
         while (clock_.read() || reset_.read())
             sc_core::wait(clock_.negedge_event());
 
@@ -62,6 +66,8 @@ struct ReadyValid {
     ) {
         auto clock_ = constBoolWrapper<!PosEdgeClock>(clock);
         auto reset_ = constBoolWrapper<!ActiveHighReset>(reset);
+
+        sc_core::wait(sc_core::SC_ZERO_TIME);
 
         while (clock_.read() || reset_.read())
             sc_core::wait(clock_.negedge_event());
