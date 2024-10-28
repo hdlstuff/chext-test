@@ -159,4 +159,4 @@ class Axi4InterfaceHandler(wrapper.StatefulInterfaceHandler):
 
     @staticmethod
     def checkKind(kind: str) -> bool:
-        return kind == "axi4"
+        return kind == "axi4" or kind == "axi4_rtl"
