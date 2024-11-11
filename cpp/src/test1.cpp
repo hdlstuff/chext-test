@@ -3,13 +3,13 @@
 using namespace sc_core;
 using namespace sc_dt;
 
-template<unsigned W>
+template<int W>
 struct fmt::formatter<sc_bv<W>> : ostream_formatter {};
 
 template<>
 struct fmt::formatter<sc_bv_base> : ostream_formatter {};
 
-template<unsigned W>
+template<int W>
 struct fmt::formatter<sc_uint<W>> : ostream_formatter {};
 
 template<>
