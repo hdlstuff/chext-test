@@ -158,7 +158,7 @@ def registerBasicElasticProtocols():
             if not isinstance(width, int):
                 raise RuntimeError("chext.elastic.Data: interface argument 'width' must be an integer.")
 
-            return f"sc_dt::sc_bv<{width}>"
+            return f"sc_core::sc_signal<sc_dt::sc_bv<{width}>>"
         
         ElasticProtocol(
             "chext.elastic.Data",
