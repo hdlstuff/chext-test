@@ -62,8 +62,7 @@ public:
         bool f3_f1;
 
         JQR_DECL(
-            MyTestBundle1_value
-,
+            MyTestBundle1_value,
             JQR_MEMBER(f0),
             JQR_MEMBER(f1),
             JQR_MEMBER(f2_0),
@@ -164,8 +163,7 @@ public:
         bool f1_f1;
 
         JQR_DECL(
-            MyTestBundle2_value
-,
+            MyTestBundle2_value,
             JQR_MEMBER(f0_0),
             JQR_MEMBER(f0_1),
             JQR_MEMBER(f0_2),

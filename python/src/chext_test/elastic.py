@@ -102,7 +102,7 @@ class EncodedDataListHook(wrapper.Hook):
                     d.iwriteln("JQR_DECL(")
                     d.indent_in()
 
-                    d.iwriteln(f"{encodedData.name}_value")
+                    d.iwrite(f"{encodedData.name}_value")
                     d.writeln(",")
 
                     for member in members:
