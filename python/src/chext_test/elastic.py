@@ -34,29 +34,61 @@ class EncodedData:
 
 @hdlinfo.register_dataclass_adv("chext.util.EncodedDataList")
 @dataclass(frozen=True)
-class EncodeDataList:
+class EncodedDataList:
     seq: List[EncodedData]
 
 
+@dataclass
+class Marked(Generic[T]):
+    obj: T
+    props: Dict[str, Any]
+
+
+def mark(t: T, **kwargs) -> Marked[T]:
+    return Marked(t, kwargs)
+
+
+def translate(t: str) -> Marked[str]:
+    return mark(t, translate=True)
+
+
+@dataclass(frozen=True)
+class ElasticProtocol:
+    protocolName: str
+    includeStr: List[Union[str, Marked[str]]] = field(default_factory=list)
+    bitsSignalType: Union[str, Callable[[hdlinfo.Interface], str]] = "bool"
+    portsToSignals: List[Tuple[str, str]] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        if self.protocolName in _protocolMap:
+            raise RuntimeError(
+                f"An elastic protocol with name '{self.protocolName}' already exists!")
+
+        _protocolMap[self.protocolName] = self
+
+
 @wrapper.registerHook
-class EncodedDataListHook(wrapper.Hook):
+class WrapperLocalElasticProtocolHook(wrapper.Hook):
     @staticmethod
     def run(wrapper: wrapper.Wrapper, cg: codegen.CodeGen, module: hdlinfo.Module) -> bool:
-        def prepare():
-            def hdrIncludeBlock(d: codegen.Dumper) -> None:
-                d.iwriteln(
-                    "/* BEGIN: chext_test includes added by 'EncodedDataListHook' */"
-                )
-                d.iwriteln("#include <cstdint>")
-                d.iwriteln("#include <fmt/core.h>")
-                d.iwriteln("#include <jqr/comp_eq.hpp>")
-                d.iwriteln("#include <jqr/core.hpp>")
-                d.iwriteln("#include <jqr/dump.hpp>")
-                d.iwriteln(
-                    "/* END: chext_test includes added by 'EncodedDataListHook' */"
-                )
+        includeStr = wrapper.config.requestOption("chext_test.includeStr", lambda x: x, "<$>")
 
-            cg.addHdrIncludeBlock(hdrIncludeBlock)
+        def mkIncludeStr(s: str) -> str:
+            return includeStr.replace("$", s)
+
+        def hdrIncludeBlock(d: codegen.Dumper) -> None:
+            d.iwriteln(
+                "/* BEGIN: chext_test includes added by 'EncodedDataListHook' */"
+            )
+            d.iwriteln("#include <cstdint>")
+            d.iwriteln("#include <fmt/core.h>")
+            d.iwriteln(f"#include {mkIncludeStr('jqr/comp_eq.hpp')}")
+            d.iwriteln(f"#include {mkIncludeStr('jqr/core.hpp')}")
+            d.iwriteln(f"#include {mkIncludeStr('jqr/dump.hpp')}")
+            d.iwriteln(
+                "/* END: chext_test includes added by 'EncodedDataListHook' */"
+            )
+            d.separate()
 
         def processEncodedData(encodedData: EncodedData):
             if encodedData.is_primitive:
@@ -242,43 +274,22 @@ class EncodedDataListHook(wrapper.Hook):
             createValueType()
             createSignalsType()
 
-        if (encodedDataList := module.args.get("encodedDataList")) is not None:
-            assert isinstance(encodedDataList, EncodeDataList)
+        if (encodedDataList := wrapper.module.args.get("encodedDataList")) is not None:
+            assert isinstance(encodedDataList, EncodedDataList)
 
-            prepare()
+            cg.addHdrIncludeBlock(hdrIncludeBlock)
             for encodedData in encodedDataList.seq:
                 processEncodedData(encodedData)
 
         return True
 
 
-@dataclass
-class Marked(Generic[T]):
-    obj: T
-    props: Dict[str, Any]
-
-
-def mark(t: T, **kwargs) -> Marked[T]:
-    return Marked(t, kwargs)
-
-
-def translate(t: str) -> Marked[str]:
-    return mark(t, translate=True)
-
-
 @dataclass(frozen=True)
-class ElasticProtocol:
+class WrapperLocalElasticProtocol:
     protocolName: str
-    includeStr: List[Union[str, Marked[str]]] = field(default_factory=list)
-    bitsSignalType: Union[str, Callable[[hdlinfo.Interface], str]] = "bool"
-    portsToSignals: List[Tuple[str, str]] = field(default_factory=list)
-
-    def __post_init__(self) -> None:
-        if self.protocolName in _protocolMap:
-            raise RuntimeError(
-                f"An elastic protocol with name '{self.protocolName}' already exists!")
-
-        _protocolMap[self.protocolName] = self
+    signalsType: str
+    signals: List[str]
+    isPrimitive: bool
 
 
 @wrapper.registerInterfaceHandler
@@ -290,6 +301,7 @@ class ElasticProtocolHandler(wrapper.StatefulInterfaceHandler):
         self._publicBlocks: List[codegen.Block] = []
         self._ctorInitBlocks: List[codegen.Block] = []
         self._ctorBlocks: List[codegen.Block] = []
+        self._wrapperLocalElasticProtocols: Dict[str, WrapperLocalElasticProtocol] = {}
 
         self._includeStr = self.getOptionStr("chext_test.includeStr", "<$>")
 
@@ -324,34 +336,44 @@ class ElasticProtocolHandler(wrapper.StatefulInterfaceHandler):
         cg.addCtorInit(ctorInit)
         cg.addCtorBlock(ctor)
 
+        def registerWrapperLocalElasticProtocol(encodedData: EncodedData):
+            signals = []
+
+            for entry in encodedData.entries:
+                if entry.width > 0:
+                    signals.append(entry.path)
+
+            self._wrapperLocalElasticProtocols[encodedData.name] = WrapperLocalElasticProtocol(
+                encodedData.name,
+                f"{encodedData.name}_signals",
+                signals,
+                encodedData.is_primitive
+            )
+
+        if (encodedDataList := wrapper.module.args.get("encodedDataList")) is not None:
+            assert isinstance(encodedDataList, EncodedDataList)
+
+            for encodedData in encodedDataList.seq:
+                registerWrapperLocalElasticProtocol(encodedData)
+
     def _mkIncludeStr(self, s: str) -> str:
         return self._includeStr.replace("$", s)
 
     @staticmethod
     def checkKind(kind: str) -> bool:
         match = re.match(_protocolPattern, kind)
+
         if match:
-            protocolName = match.group(2)
-            if protocolName not in _protocolMap:
-                print(
-                    f"[warn] Elastic protocol is not registered: {protocolName}")
-                return False
             return True
         else:
             return False
 
-    def processInterface(self, interface: hdlinfo.Interface) -> None:
-        # since checkKind is a static method (as a result of which we instantiate the handler)
-        # we should process the interface.kind again. Is that ideal? No, but I do not really
-        # think there is a better way...
-        protocolName = re.match(_protocolPattern, interface.kind).group(2)
-        ep = _protocolMap[protocolName]
-
+    def _implementElasticProtocol(self, interface: hdlinfo.Interface, protocol: ElasticProtocol) -> None:
         bitsSignalType = None
-        if isinstance(ep.bitsSignalType, str):
-            bitsSignalType = ep.bitsSignalType
+        if isinstance(protocol.bitsSignalType, str):
+            bitsSignalType = protocol.bitsSignalType
         else:
-            bitsSignalType = ep.bitsSignalType(interface)
+            bitsSignalType = protocol.bitsSignalType(interface)
         name = interface.name
 
         role = None
@@ -362,21 +384,22 @@ class ElasticProtocolHandler(wrapper.StatefulInterfaceHandler):
         else:
             raise RuntimeError(f"Invalid interface role: {interface.role}")
 
-        if ep.includeStr is not None:
-            if isinstance(ep.includeStr, Marked) and isinstance(ep.includeStr.obj, str):
-                if ep.includeStr.props.get("translate", False):
+        if protocol.includeStr is not None:
+            if isinstance(protocol.includeStr, Marked) and isinstance(protocol.includeStr.obj, str):
+                if protocol.includeStr.props.get("translate", False):
                     self._includeBlocks.append(
-                        f"#include {self._mkIncludeStr(ep.includeStr.obj)}")
+                        f"#include {self._mkIncludeStr(protocol.includeStr.obj)}")
                 else:
-                    self._includeBlocks.append(f"#include {ep.includeStr.obj}")
-            elif isinstance(ep.includeStr, str):
-                self._includeBlocks.append(f"#include {ep.includeStr}")
+                    self._includeBlocks.append(f"#include {protocol.includeStr.obj}")
+            elif isinstance(protocol.includeStr, str):
+                self._includeBlocks.append(f"#include {protocol.includeStr}")
             else:
-                raise RuntimeError(f"Invalid includeStr: {ep.includeStr}.")
+                raise RuntimeError(f"Invalid includeStr: {protocol.includeStr}.")
 
         def publicBlock(d: codegen.Dumper) -> None:
             d.iwriteln(
-                f"chext_test::elastic::{role}<{bitsSignalType}> {interface.name};")
+                f"chext_test::elastic::{role}<{bitsSignalType}> {interface.name};"
+            )
 
         def ctorInitBlock(d: codegen.Dumper) -> None:
             clock = self.wrapper.getClock(interface.associatedClock)
@@ -385,15 +408,71 @@ class ElasticProtocolHandler(wrapper.StatefulInterfaceHandler):
             d.writeln(",")
 
         def ctorBlock(d: codegen.Dumper) -> None:
-            for (port, signal) in ep.portsToSignals:
+            for (port, signal) in protocol.portsToSignals:
                 d.iwriteln(
-                    f"verilatedModule_.{name}_{port}(this->{name}.{signal});")
+                    f"verilatedModule_.{name}_{port}(this->{name}.{signal});"
+                )
 
             d.separate()
 
         self._publicBlocks.append(publicBlock)
         self._ctorInitBlocks.append(ctorInitBlock)
         self._ctorBlocks.append(ctorBlock)
+
+    def _implementWrapperLocalElasticProtocol(self, interface: hdlinfo.Interface, protocol: WrapperLocalElasticProtocol) -> None:
+        if protocol.isPrimitive:
+            raise RuntimeError("WrapperLocalElasticProtocol shall not be a primitive!")
+
+        bitsSignalType = protocol.signalsType
+        name = interface.name
+
+        role = None
+        if interface.role == "source":
+            role = "Source"
+        elif interface.role == "sink":
+            role = "Sink"
+        else:
+            raise RuntimeError(f"Invalid interface role: {interface.role}")
+
+        def publicBlock(d: codegen.Dumper) -> None:
+            d.iwriteln(
+                f"chext_test::elastic::{role}<{bitsSignalType}> {interface.name};"
+            )
+
+        def ctorInitBlock(d: codegen.Dumper) -> None:
+            clock = self.wrapper.getClock(interface.associatedClock)
+            reset = self.wrapper.getReset(interface.associatedReset, True)
+            d.iwrite(f"{name}(\"{name}\", {clock}, {reset})")
+            d.writeln(",")
+
+        def ctorBlock(d: codegen.Dumper) -> None:
+            for signal in protocol.signals:
+                d.iwriteln(
+                    f"verilatedModule_.{name}_bits_{signal}(this->{name}.bits.{signal});"
+                )
+            d.iwriteln(f"verilatedModule_.{name}_ready(this->{name}.ready);")
+            d.iwriteln(f"verilatedModule_.{name}_valid(this->{name}.valid);")
+
+            d.separate()
+
+        self._publicBlocks.append(publicBlock)
+        self._ctorInitBlocks.append(ctorInitBlock)
+        self._ctorBlocks.append(ctorBlock)
+
+    def processInterface(self, interface: hdlinfo.Interface) -> None:
+        protocolName = re.match(_protocolPattern, interface.kind).group(2)
+        assert protocolName is not None
+
+        protocol0 = _protocolMap.get(protocolName, None)
+        protocol1 = self._wrapperLocalElasticProtocols.get(protocolName, None)
+
+        if protocol0 is not None:
+            return self._implementElasticProtocol(interface, protocol0)
+
+        if protocol1 is not None:
+            return self._implementWrapperLocalElasticProtocol(interface, protocol1)
+
+        raise RuntimeError(f"ElasticProtocolHandler: no handler is registered for '{protocolName}'.")
 
 
 def registerBasicElasticProtocols():

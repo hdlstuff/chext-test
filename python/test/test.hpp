@@ -13,6 +13,7 @@
 #include <jqr/core.hpp>
 #include <jqr/dump.hpp>
 /* END: chext_test includes added by 'EncodedDataListHook' */
+
 #include <hdlscw/wrapper_base.hpp>
 
 /* BEGIN: chext_test includes for 'amba/axi4' */
@@ -275,6 +276,8 @@ public:
     chext_test::elastic::Source<sc_core::sc_signal<sc_dt::sc_bv<32>>> source1;
     chext_test::elastic::Source<chext_test::elastic::DataLastSignals<64>> source2;
     chext_test::elastic::Source<PacketSignals<128>> source3;
+    chext_test::elastic::Source<MyTestBundle1_signals> source4;
+    chext_test::elastic::Source<MyTestBundle2_signals> source4;
     /* END: chext_test public for 'elastic' */
 
     virtual ~ScmyModule();

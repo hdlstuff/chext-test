@@ -13,6 +13,7 @@
 #include <jqr/core.hpp>
 #include <jqr/dump.hpp>
 /* END: chext_test includes added by 'EncodedDataListHook' */
+
 #include <hdlscw/wrapper_base.hpp>
 
 /* BEGIN: chext_test includes for 'amba/axi4' */
@@ -275,6 +276,8 @@ public:
     chext_test::elastic::Source<sc_core::sc_signal<sc_dt::sc_bv<32>>> source1;
     chext_test::elastic::Source<chext_test::elastic::DataLastSignals<64>> source2;
     chext_test::elastic::Source<PacketSignals<128>> source3;
+    chext_test::elastic::Source<MyTestBundle1_signals> source4;
+    chext_test::elastic::Source<MyTestBundle2_signals> source4;
     /* END: chext_test public for 'elastic' */
 
     virtual ~ScmyModule();
@@ -304,7 +307,9 @@ ScmyModule::ScmyModule(sc_core::sc_module_name const& moduleName) :
     m_axi("m_axi", clock, reset),
     source1("source1", clock, reset),
     source2("source2", clock, reset),
-    source3("source3", clock, reset) {
+    source3("source3", clock, reset),
+    source4("source4", clock, reset),
+    source4("source4", clock, reset) {
 
     /* BEGIN: clock ports (conn) */
     verilatedModule_.clock(clock);
@@ -406,6 +411,26 @@ ScmyModule::ScmyModule(sc_core::sc_module_name const& moduleName) :
     verilatedModule_.source3_bits_id(this->source3.bits.id);
     verilatedModule_.source3_ready(this->source3.ready);
     verilatedModule_.source3_valid(this->source3.valid);
+
+    verilatedModule_.source4_bits_f0(this->source4.bits.f0);
+    verilatedModule_.source4_bits_f1(this->source4.bits.f1);
+    verilatedModule_.source4_bits_f2_0(this->source4.bits.f2_0);
+    verilatedModule_.source4_bits_f2_1(this->source4.bits.f2_1);
+    verilatedModule_.source4_bits_f2_2(this->source4.bits.f2_2);
+    verilatedModule_.source4_bits_f2_3(this->source4.bits.f2_3);
+    verilatedModule_.source4_bits_f3_f0(this->source4.bits.f3_f0);
+    verilatedModule_.source4_bits_f3_f1(this->source4.bits.f3_f1);
+    verilatedModule_.source4_ready(this->source4.ready);
+    verilatedModule_.source4_valid(this->source4.valid);
+
+    verilatedModule_.source4_bits_f0_0(this->source4.bits.f0_0);
+    verilatedModule_.source4_bits_f0_1(this->source4.bits.f0_1);
+    verilatedModule_.source4_bits_f0_2(this->source4.bits.f0_2);
+    verilatedModule_.source4_bits_f0_3(this->source4.bits.f0_3);
+    verilatedModule_.source4_bits_f1_f0(this->source4.bits.f1_f0);
+    verilatedModule_.source4_bits_f1_f1(this->source4.bits.f1_f1);
+    verilatedModule_.source4_ready(this->source4.ready);
+    verilatedModule_.source4_valid(this->source4.valid);
 
     /* END: chext_test ctor for 'elastic' */
 

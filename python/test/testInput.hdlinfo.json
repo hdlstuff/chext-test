@@ -139,6 +139,32 @@
                     "obj": 128
                 }
             }
+        },
+        {
+            "name": "source4",
+            "role": "source",
+            "kind": "readyValid[MyTestBundle1]",
+            "associatedClock": "clock",
+            "associatedReset": "reset",
+            "args": {
+                "dataWidth": {
+                    "typeName": "int",
+                    "obj": 128
+                }
+            }
+        },
+        {
+            "name": "source4",
+            "role": "source",
+            "kind": "readyValid[MyTestBundle2]",
+            "associatedClock": "clock",
+            "associatedReset": "reset",
+            "args": {
+                "dataWidth": {
+                    "typeName": "int",
+                    "obj": 128
+                }
+            }
         }
     ],
     "args": {
