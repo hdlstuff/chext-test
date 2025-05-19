@@ -11,6 +11,28 @@ __all__ = ["ElasticProtocol", "translate", "mark"]
 _protocolMap: Dict[str, "ElasticProtocol"] = {}
 _protocolPattern = r'^(chext\.elastic\.Interface|readyValid|hdlinfo\.elastic\.Interface)\[([\w\.-]+)\]$'
 
+
+@hdlinfo.register_dataclass_adv("chext.util.EncodedDataEntry")
+@dataclass(frozen=True)
+class EncodedDataEntry:
+    path: str
+    width: int
+    tpe: str
+
+
+@hdlinfo.register_dataclass_adv("chext.util.EncodedData")
+@dataclass(frozen=True)
+class EncodedData:
+    name: str
+    entries: List[EncodedDataEntry]
+
+
+@hdlinfo.register_dataclass_adv("chext.util.EncodedDataList")
+@dataclass(frozen=True)
+class EncodeDataList:
+    seq: List[EncodedData]
+
+
 @dataclass
 class Marked(Generic[T]):
     obj: T
@@ -20,8 +42,10 @@ class Marked(Generic[T]):
 def mark(t: T, **kwargs) -> Marked[T]:
     return Marked(t, kwargs)
 
+
 def translate(t: str) -> Marked[str]:
     return mark(t, translate=True)
+
 
 @dataclass(frozen=True)
 class ElasticProtocol:
@@ -56,14 +80,14 @@ class ElasticProtocolHandler(wrapper.StatefulInterfaceHandler):
             d.iwriteln(f"/* END: chext_test includes for 'elastic' */")
 
             d.separate()
-        
+
         def public(d: codegen.Dumper) -> None:
             d.iwriteln(f"/* BEGIN: chext_test public for 'elastic' */")
             dumpBlockList(d, self._publicBlocks)
             d.iwriteln(f"/* END: chext_test public for 'elastic' */")
 
             d.separate()
-        
+
         def ctorInit(d: codegen.Dumper) -> None:
             dumpBlockList(d, self._ctorInitBlocks)
 
@@ -94,7 +118,6 @@ class ElasticProtocolHandler(wrapper.StatefulInterfaceHandler):
         else:
             return False
 
-
     def processInterface(self, interface: hdlinfo.Interface) -> None:
         # since checkKind is a static method (as a result of which we instantiate the handler)
         # we should process the interface.kind again. Is that ideal? No, but I do not really
@@ -116,7 +139,7 @@ class ElasticProtocolHandler(wrapper.StatefulInterfaceHandler):
             role = "Sink"
         else:
             raise RuntimeError(f"Invalid interface role: {interface.role}")
-        
+
         if ep.includeStr is not None:
             if isinstance(ep.includeStr, Marked) and isinstance(ep.includeStr.obj, str):
                 if ep.includeStr.props.get("translate", False):
@@ -147,19 +170,20 @@ class ElasticProtocolHandler(wrapper.StatefulInterfaceHandler):
         self._ctorInitBlocks.append(ctorInitBlock)
         self._ctorBlocks.append(ctorBlock)
 
+
 def registerBasicElasticProtocols():
     def registerData():
         def signalType(interface: hdlinfo.Interface) -> str:
             if "width" not in interface.args:
                 raise RuntimeError("chext.elastic.Data: interface missing argument 'width'.")
-            
+
             width = interface.args["width"]
 
             if not isinstance(width, int):
                 raise RuntimeError("chext.elastic.Data: interface argument 'width' must be an integer.")
 
             return f"sc_core::sc_signal<sc_dt::sc_bv<{width}>>"
-        
+
         ElasticProtocol(
             "chext.elastic.Data",
             None,
@@ -170,12 +194,12 @@ def registerBasicElasticProtocols():
                 ("valid", "valid")
             ]
         )
-    
+
     def registerDataLast():
         def signalType(interface: hdlinfo.Interface) -> str:
             if "width" not in interface.args:
                 raise RuntimeError("chext.elastic.Data: interface missing argument 'width'.")
-            
+
             width = interface.args["width"]
 
             if not isinstance(width, int):
@@ -197,5 +221,6 @@ def registerBasicElasticProtocols():
 
     registerData()
     registerDataLast()
+
 
 registerBasicElasticProtocols()
