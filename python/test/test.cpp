@@ -6,11 +6,11 @@ ScmyModule::ScmyModule(sc_core::sc_module_name const& moduleName) :
     clock("clock"),
     reset("reset"),
     irq("irq"),
-    s_axil_management("s_axil_management", verilatedModule_.clock, verilatedModule_.reset),
-    m_axi("m_axi", verilatedModule_.clock, verilatedModule_.reset),
-    source1("source1", verilatedModule_.clock, verilatedModule_.reset),
-    source2("source2", verilatedModule_.clock, verilatedModule_.reset),
-    source3("source3", verilatedModule_.clock, verilatedModule_.reset) {
+    s_axil_management("s_axil_management", clock, reset),
+    m_axi("m_axi", clock, reset),
+    source1("source1", clock, reset),
+    source2("source2", clock, reset),
+    source3("source3", clock, reset) {
 
     /* BEGIN: clock ports (conn) */
     verilatedModule_.clock(clock);

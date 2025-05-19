@@ -6,6 +6,13 @@
 #include <systemc>
 #include <tlm>
 
+/* BEGIN: chext_test includes added by 'EncodedDataListHook' */
+#include <cstdint>
+#include <fmt/core.h>
+#include <jqr/comp_eq.hpp>
+#include <jqr/core.hpp>
+#include <jqr/dump.hpp>
+/* END: chext_test includes added by 'EncodedDataListHook' */
 #include <hdlscw/wrapper_base.hpp>
 
 /* BEGIN: chext_test includes for 'amba/axi4' */
@@ -29,6 +36,201 @@ public:
 
     SC_HAS_PROCESS(ScmyModule);
 
+    class MyTestBundle1_value {
+        // f0: UInt<8>
+        std::uint8_t f0;
+
+        // f1: UInt<18>
+        std::uint32_t f1;
+
+        // f2_0: UInt<6>
+        std::uint8_t f2_0;
+
+        // f2_1: UInt<6>
+        std::uint8_t f2_1;
+
+        // f2_2: UInt<6>
+        std::uint8_t f2_2;
+
+        // f2_3: UInt<6>
+        std::uint8_t f2_3;
+
+        // f3_f0: UInt<15>
+        std::uint16_t f3_f0;
+
+        // f3_f1: Bool
+        bool f3_f1;
+
+        JQR_DECL(
+            MyTestBundle1_value
+,
+            JQR_MEMBER(f0),
+            JQR_MEMBER(f1),
+            JQR_MEMBER(f2_0),
+            JQR_MEMBER(f2_1),
+            JQR_MEMBER(f2_2),
+            JQR_MEMBER(f2_3),
+            JQR_MEMBER(f3_f0),
+            JQR_MEMBER(f3_f1)
+        )
+
+        JQR_TO_STRING
+        JQR_OSTREAM
+        JQR_COMP_EQ
+    };
+
+    class MyTestBundle1_signals {
+        using value_type = MyTestBundle1_value;
+
+        // f0: UInt<8>
+        sc_core::sc_signal<sc_dt::sc_bv<8>, sc_core::SC_MANY_WRITERS> f0;
+
+        // f1: UInt<18>
+        sc_core::sc_signal<sc_dt::sc_bv<18>, sc_core::SC_MANY_WRITERS> f1;
+
+        // f2_0: UInt<6>
+        sc_core::sc_signal<sc_dt::sc_bv<6>, sc_core::SC_MANY_WRITERS> f2_0;
+
+        // f2_1: UInt<6>
+        sc_core::sc_signal<sc_dt::sc_bv<6>, sc_core::SC_MANY_WRITERS> f2_1;
+
+        // f2_2: UInt<6>
+        sc_core::sc_signal<sc_dt::sc_bv<6>, sc_core::SC_MANY_WRITERS> f2_2;
+
+        // f2_3: UInt<6>
+        sc_core::sc_signal<sc_dt::sc_bv<6>, sc_core::SC_MANY_WRITERS> f2_3;
+
+        // f3_f0: UInt<15>
+        sc_core::sc_signal<sc_dt::sc_bv<15>, sc_core::SC_MANY_WRITERS> f3_f0;
+
+        // f3_f1: Bool
+        sc_core::sc_signal<bool, sc_core::SC_MANY_WRITERS> f3_f1;
+
+        MyTestBundle1_signals(const char* name) :
+            f0(fmt::format("{}_f0", name).c_str()),
+            f1(fmt::format("{}_f1", name).c_str()),
+            f2_0(fmt::format("{}_f2_0", name).c_str()),
+            f2_1(fmt::format("{}_f2_1", name).c_str()),
+            f2_2(fmt::format("{}_f2_2", name).c_str()),
+            f2_3(fmt::format("{}_f2_3", name).c_str()),
+            f3_f0(fmt::format("{}_f3_f0", name).c_str()),
+            f3_f1(fmt::format("{}_f3_f1", name).c_str()) { /* empty ctor */ }
+
+        void readTo(value_type & x) {
+            x.~value_type();
+
+            new (&x) value_type {
+                static_cast<std::uint8_t>(f0.read().to_uint64()),
+                static_cast<std::uint32_t>(f1.read().to_uint64()),
+                static_cast<std::uint8_t>(f2_0.read().to_uint64()),
+                static_cast<std::uint8_t>(f2_1.read().to_uint64()),
+                static_cast<std::uint8_t>(f2_2.read().to_uint64()),
+                static_cast<std::uint8_t>(f2_3.read().to_uint64()),
+                static_cast<std::uint16_t>(f3_f0.read().to_uint64()),
+                static_cast<bool>(f3_f1.read().to_uint64())
+            };
+        }
+
+        void writeFrom(value_type const& x) {
+            f0.write(x.f0);
+            f1.write(x.f1);
+            f2_0.write(x.f2_0);
+            f2_1.write(x.f2_1);
+            f2_2.write(x.f2_2);
+            f2_3.write(x.f2_3);
+            f3_f0.write(x.f3_f0);
+            f3_f1.write(x.f3_f1);
+        }
+
+    };
+
+    class MyTestBundle2_value {
+        // f0_0: UInt<6>
+        std::uint8_t f0_0;
+
+        // f0_1: UInt<6>
+        std::uint8_t f0_1;
+
+        // f0_2: UInt<6>
+        std::uint8_t f0_2;
+
+        // f0_3: UInt<6>
+        std::uint8_t f0_3;
+
+        // f1_f0: UInt<15>
+        std::uint16_t f1_f0;
+
+        // f1_f1: Bool
+        bool f1_f1;
+
+        JQR_DECL(
+            MyTestBundle2_value
+,
+            JQR_MEMBER(f0_0),
+            JQR_MEMBER(f0_1),
+            JQR_MEMBER(f0_2),
+            JQR_MEMBER(f0_3),
+            JQR_MEMBER(f1_f0),
+            JQR_MEMBER(f1_f1)
+        )
+
+        JQR_TO_STRING
+        JQR_OSTREAM
+        JQR_COMP_EQ
+    };
+
+    class MyTestBundle2_signals {
+        using value_type = MyTestBundle2_value;
+
+        // f0_0: UInt<6>
+        sc_core::sc_signal<sc_dt::sc_bv<6>, sc_core::SC_MANY_WRITERS> f0_0;
+
+        // f0_1: UInt<6>
+        sc_core::sc_signal<sc_dt::sc_bv<6>, sc_core::SC_MANY_WRITERS> f0_1;
+
+        // f0_2: UInt<6>
+        sc_core::sc_signal<sc_dt::sc_bv<6>, sc_core::SC_MANY_WRITERS> f0_2;
+
+        // f0_3: UInt<6>
+        sc_core::sc_signal<sc_dt::sc_bv<6>, sc_core::SC_MANY_WRITERS> f0_3;
+
+        // f1_f0: UInt<15>
+        sc_core::sc_signal<sc_dt::sc_bv<15>, sc_core::SC_MANY_WRITERS> f1_f0;
+
+        // f1_f1: Bool
+        sc_core::sc_signal<bool, sc_core::SC_MANY_WRITERS> f1_f1;
+
+        MyTestBundle2_signals(const char* name) :
+            f0_0(fmt::format("{}_f0_0", name).c_str()),
+            f0_1(fmt::format("{}_f0_1", name).c_str()),
+            f0_2(fmt::format("{}_f0_2", name).c_str()),
+            f0_3(fmt::format("{}_f0_3", name).c_str()),
+            f1_f0(fmt::format("{}_f1_f0", name).c_str()),
+            f1_f1(fmt::format("{}_f1_f1", name).c_str()) { /* empty ctor */ }
+
+        void readTo(value_type & x) {
+            x.~value_type();
+
+            new (&x) value_type {
+                static_cast<std::uint8_t>(f0_0.read().to_uint64()),
+                static_cast<std::uint8_t>(f0_1.read().to_uint64()),
+                static_cast<std::uint8_t>(f0_2.read().to_uint64()),
+                static_cast<std::uint8_t>(f0_3.read().to_uint64()),
+                static_cast<std::uint16_t>(f1_f0.read().to_uint64()),
+                static_cast<bool>(f1_f1.read().to_uint64())
+            };
+        }
+
+        void writeFrom(value_type const& x) {
+            f0_0.write(x.f0_0);
+            f0_1.write(x.f0_1);
+            f0_2.write(x.f0_2);
+            f0_3.write(x.f0_3);
+            f1_f0.write(x.f1_f0);
+            f1_f1.write(x.f1_f1);
+        }
+
+    };
     /* BEGIN: clock ports (decl) */
     sc_core::sc_in_clk clock;
     /* END: clock ports (decl) */
@@ -68,11 +270,11 @@ public:
 
     /* BEGIN: chext_test public for 'amba/axi4' */
     chext_test::amba::axi4::lite::Slave<20,32> s_axil_management;
-    chext_test::amba::axi4::full::Master<4,32,256,32,32,32,32,32,false> m_axi;
+    chext_test::amba::axi4::full::Master<4,32,256,4,4,0,0,0,false> m_axi;
     /* END: chext_test public for 'amba/axi4' */
 
     /* BEGIN: chext_test public for 'elastic' */
-    chext_test::elastic::Source<sc_dt::sc_bv<32>> source1;
+    chext_test::elastic::Source<sc_core::sc_signal<sc_dt::sc_bv<32>>> source1;
     chext_test::elastic::Source<chext_test::elastic::DataLastSignals<64>> source2;
     chext_test::elastic::Source<PacketSignals<128>> source3;
     /* END: chext_test public for 'elastic' */

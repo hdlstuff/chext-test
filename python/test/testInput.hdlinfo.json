@@ -149,6 +149,93 @@
                 "numOutstandingReadRequests": 16,
                 "numOutstandingWriteRequests": 16
             }
+        },
+        "encodedDataList": {
+            "typeName": "chext.util.EncodedDataList",
+            "obj": {
+                "seq": [
+                    {
+                        "name": "MyTestBundle1",
+                        "entries": [
+                            {
+                                "path": "f0",
+                                "width": 8,
+                                "tpe": "UInt<8>"
+                            },
+                            {
+                                "path": "f1",
+                                "width": 18,
+                                "tpe": "UInt<18>"
+                            },
+                            {
+                                "path": "f2_0",
+                                "width": 6,
+                                "tpe": "UInt<6>"
+                            },
+                            {
+                                "path": "f2_1",
+                                "width": 6,
+                                "tpe": "UInt<6>"
+                            },
+                            {
+                                "path": "f2_2",
+                                "width": 6,
+                                "tpe": "UInt<6>"
+                            },
+                            {
+                                "path": "f2_3",
+                                "width": 6,
+                                "tpe": "UInt<6>"
+                            },
+                            {
+                                "path": "f3_f0",
+                                "width": 15,
+                                "tpe": "UInt<15>"
+                            },
+                            {
+                                "path": "f3_f1",
+                                "width": 1,
+                                "tpe": "Bool"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "MyTestBundle2",
+                        "entries": [
+                            {
+                                "path": "f0_0",
+                                "width": 6,
+                                "tpe": "UInt<6>"
+                            },
+                            {
+                                "path": "f0_1",
+                                "width": 6,
+                                "tpe": "UInt<6>"
+                            },
+                            {
+                                "path": "f0_2",
+                                "width": 6,
+                                "tpe": "UInt<6>"
+                            },
+                            {
+                                "path": "f0_3",
+                                "width": 6,
+                                "tpe": "UInt<6>"
+                            },
+                            {
+                                "path": "f1_f0",
+                                "width": 15,
+                                "tpe": "UInt<15>"
+                            },
+                            {
+                                "path": "f1_f1",
+                                "width": 1,
+                                "tpe": "Bool"
+                            }
+                        ]
+                    }
+                ]
+            }
         }
     }
 }

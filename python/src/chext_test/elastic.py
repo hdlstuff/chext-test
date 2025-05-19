@@ -1,6 +1,7 @@
 from typing import *
 from dataclasses import dataclass, field
 from hdlscw import codegen, wrapper
+from functools import cached_property
 from .common import *
 import hdlinfo
 import re
@@ -26,11 +27,229 @@ class EncodedData:
     name: str
     entries: List[EncodedDataEntry]
 
+    @cached_property
+    def is_primitive(self):
+        return len(self.entries) == 1 and self.entries[0].path == ""
+
 
 @hdlinfo.register_dataclass_adv("chext.util.EncodedDataList")
 @dataclass(frozen=True)
 class EncodeDataList:
     seq: List[EncodedData]
+
+
+@wrapper.registerHook
+class EncodedDataListHook(wrapper.Hook):
+    @staticmethod
+    def run(wrapper: wrapper.Wrapper, cg: codegen.CodeGen, module: hdlinfo.Module) -> bool:
+        def prepare():
+            def hdrIncludeBlock(d: codegen.Dumper) -> None:
+                d.iwriteln(
+                    "/* BEGIN: chext_test includes added by 'EncodedDataListHook' */"
+                )
+                d.iwriteln("#include <cstdint>")
+                d.iwriteln("#include <fmt/core.h>")
+                d.iwriteln("#include <jqr/comp_eq.hpp>")
+                d.iwriteln("#include <jqr/core.hpp>")
+                d.iwriteln("#include <jqr/dump.hpp>")
+                d.iwriteln(
+                    "/* END: chext_test includes added by 'EncodedDataListHook' */"
+                )
+
+            cg.addHdrIncludeBlock(hdrIncludeBlock)
+
+        def processEncodedData(encodedData: EncodedData):
+            if encodedData.is_primitive:
+                return
+
+            def createValueType():
+                def f(d: codegen.Dumper) -> None:
+                    d.separate()
+                    d.iwriteln(f"class {encodedData.name}_value {{")
+                    d.indent_in()
+
+                    members: List[EncodedDataEntry] = []
+
+                    for member in encodedData.entries:
+                        if member.width == 0:
+                            continue
+
+                        members.append(member)
+
+                        dataType = None
+
+                        if member.width == 1:
+                            dataType = "bool"
+                        elif member.width <= 8:
+                            dataType = "std::uint8_t"
+                        elif member.width <= 16:
+                            dataType = "std::uint16_t"
+                        elif member.width <= 32:
+                            dataType = "std::uint32_t"
+                        elif member.width <= 64:
+                            dataType = "std::uint64_t"
+                        else:
+                            dataType = f"sc_dt::sc_bv<{member.width}>"
+
+                        d.iwriteln(
+                            f"// {member.path}: {member.tpe}"
+                        )
+                        d.iwriteln(
+                            f"{dataType} {member.path};"
+                        )
+                        d.separate()
+
+                    d.iwriteln("JQR_DECL(")
+                    d.indent_in()
+
+                    d.iwriteln(f"{encodedData.name}_value")
+                    d.writeln(",")
+
+                    for member in members:
+                        d.iwrite(f"JQR_MEMBER({member.path})")
+                        d.writeln(",")
+
+                    d.unwrite()
+                    d.writeln()
+
+                    d.indent_out()
+                    d.iwriteln(")")
+
+                    d.separate()
+
+                    d.iwriteln("JQR_TO_STRING")
+                    d.iwriteln("JQR_OSTREAM")
+                    d.iwriteln("JQR_COMP_EQ")
+
+                    d.indent_out()
+                    d.iwriteln(f"}};")
+
+                cg.addPublicBlock(f)
+
+            def createSignalsType():
+                def f(d: codegen.Dumper) -> None:
+                    d.separate()
+                    d.iwriteln(f"class {encodedData.name}_signals {{")
+                    d.indent_in()
+
+                    d.iwriteln(f"using value_type = {encodedData.name}_value;")
+                    d.separate()
+
+                    members: List[EncodedDataEntry] = []
+
+                    for member in encodedData.entries:
+                        if member.width == 0:
+                            continue
+
+                        members.append(member)
+
+                        dataType = "bool" if member.width == 1 else f"sc_dt::sc_bv<{member.width}>"
+                        d.iwriteln(
+                            f"// {member.path}: {member.tpe}"
+                        )
+                        d.iwriteln(
+                            f"sc_core::sc_signal<{dataType}, sc_core::SC_MANY_WRITERS> {member.path};"
+                        )
+                        d.separate()
+
+                    if len(members) > 0:
+                        # constructor
+                        d.iwriteln(
+                            f"{encodedData.name}_signals(const char* name) :"
+                        )
+                        d.indent_in()
+
+                        for member in members:
+                            d.iwrite(
+                                f'{member.path}(fmt::format("{{}}_{member.path}", name).c_str())')
+                            d.writeln(",")
+
+                        d.unwrite()
+                        d.writeln(f" {{ /* empty ctor */ }}")
+                        d.indent_out()
+                        d.separate()
+
+                        # read to
+                        d.iwriteln(
+                            f"void readTo(value_type & x) {{")
+                        d.indent_in()
+
+                        d.iwriteln(f"x.~value_type();")
+                        d.separate()
+
+                        d.iwriteln(f"new (&x) value_type {{")
+                        d.indent_in()
+
+                        for member in members:
+                            if member.width <= 64:
+                                dataType = None
+
+                                if member.width == 1:
+                                    dataType = "bool"
+                                elif member.width <= 8:
+                                    dataType = "std::uint8_t"
+                                elif member.width <= 16:
+                                    dataType = "std::uint16_t"
+                                elif member.width <= 32:
+                                    dataType = "std::uint32_t"
+                                elif member.width <= 64:
+                                    dataType = "std::uint64_t"
+
+                                d.iwrite(
+                                    f'static_cast<{dataType}>({member.path}.read().to_uint64())'
+                                )
+                            else:
+                                d.iwrite(
+                                    f'{member.path}.read()'
+                                )
+
+                            d.writeln(",")
+
+                        d.unwrite()
+                        d.writeln()
+
+                        d.indent_out()
+                        d.iwriteln(f"}};")
+
+                        d.indent_out()
+                        d.iwriteln(f"}}")
+                        d.separate()
+
+                        # write from
+                        d.iwriteln(
+                            f"void writeFrom(value_type const& x) {{")
+                        d.indent_in()
+
+                        for member in members:
+                            d.iwriteln(
+                                f"{member.path}.write(x.{member.path});")
+
+                        d.indent_out()
+                        d.iwriteln(f"}}")
+                        d.separate()
+
+                    else:
+                        d.iwriteln(
+                            f"{encodedData.name}_signals(const char*) /* no members */ {{ /* empty ctor */ }}"
+                        )
+                        d.separate()
+
+                    d.indent_out()
+                    d.iwriteln(f"}};")
+
+                cg.addPublicBlock(f)
+
+            createValueType()
+            createSignalsType()
+
+        if (encodedDataList := module.args.get("encodedDataList")) is not None:
+            assert isinstance(encodedDataList, EncodeDataList)
+
+            prepare()
+            for encodedData in encodedDataList.seq:
+                processEncodedData(encodedData)
+
+        return True
 
 
 @dataclass
@@ -56,7 +275,8 @@ class ElasticProtocol:
 
     def __post_init__(self) -> None:
         if self.protocolName in _protocolMap:
-            raise RuntimeError(f"An elastic protocol with name '{self.protocolName}' already exists!")
+            raise RuntimeError(
+                f"An elastic protocol with name '{self.protocolName}' already exists!")
 
         _protocolMap[self.protocolName] = self
 
@@ -75,7 +295,8 @@ class ElasticProtocolHandler(wrapper.StatefulInterfaceHandler):
 
         def hdrInclude(d: codegen.Dumper) -> None:
             d.iwriteln(f"/* BEGIN: chext_test includes for 'elastic' */")
-            d.iwriteln(f"#include {self._mkIncludeStr('chext_test/elastic/Driver.hpp')}")
+            d.iwriteln(
+                f"#include {self._mkIncludeStr('chext_test/elastic/Driver.hpp')}")
             dumpBlockList(d, self._includeBlocks)
             d.iwriteln(f"/* END: chext_test includes for 'elastic' */")
 
@@ -112,7 +333,8 @@ class ElasticProtocolHandler(wrapper.StatefulInterfaceHandler):
         if match:
             protocolName = match.group(2)
             if protocolName not in _protocolMap:
-                print(f"[warn] Elastic protocol is not registered: {protocolName}")
+                print(
+                    f"[warn] Elastic protocol is not registered: {protocolName}")
                 return False
             return True
         else:
@@ -143,7 +365,8 @@ class ElasticProtocolHandler(wrapper.StatefulInterfaceHandler):
         if ep.includeStr is not None:
             if isinstance(ep.includeStr, Marked) and isinstance(ep.includeStr.obj, str):
                 if ep.includeStr.props.get("translate", False):
-                    self._includeBlocks.append(f"#include {self._mkIncludeStr(ep.includeStr.obj)}")
+                    self._includeBlocks.append(
+                        f"#include {self._mkIncludeStr(ep.includeStr.obj)}")
                 else:
                     self._includeBlocks.append(f"#include {ep.includeStr.obj}")
             elif isinstance(ep.includeStr, str):
@@ -152,7 +375,8 @@ class ElasticProtocolHandler(wrapper.StatefulInterfaceHandler):
                 raise RuntimeError(f"Invalid includeStr: {ep.includeStr}.")
 
         def publicBlock(d: codegen.Dumper) -> None:
-            d.iwriteln(f"chext_test::elastic::{role}<{bitsSignalType}> {interface.name};")
+            d.iwriteln(
+                f"chext_test::elastic::{role}<{bitsSignalType}> {interface.name};")
 
         def ctorInitBlock(d: codegen.Dumper) -> None:
             clock = self.wrapper.getClock(interface.associatedClock)
@@ -162,7 +386,8 @@ class ElasticProtocolHandler(wrapper.StatefulInterfaceHandler):
 
         def ctorBlock(d: codegen.Dumper) -> None:
             for (port, signal) in ep.portsToSignals:
-                d.iwriteln(f"verilatedModule_.{name}_{port}(this->{name}.{signal});")
+                d.iwriteln(
+                    f"verilatedModule_.{name}_{port}(this->{name}.{signal});")
 
             d.separate()
 
@@ -175,12 +400,14 @@ def registerBasicElasticProtocols():
     def registerData():
         def signalType(interface: hdlinfo.Interface) -> str:
             if "width" not in interface.args:
-                raise RuntimeError("chext.elastic.Data: interface missing argument 'width'.")
+                raise RuntimeError(
+                    "chext.elastic.Data: interface missing argument 'width'.")
 
             width = interface.args["width"]
 
             if not isinstance(width, int):
-                raise RuntimeError("chext.elastic.Data: interface argument 'width' must be an integer.")
+                raise RuntimeError(
+                    "chext.elastic.Data: interface argument 'width' must be an integer.")
 
             return f"sc_core::sc_signal<sc_dt::sc_bv<{width}>>"
 
@@ -198,12 +425,14 @@ def registerBasicElasticProtocols():
     def registerDataLast():
         def signalType(interface: hdlinfo.Interface) -> str:
             if "width" not in interface.args:
-                raise RuntimeError("chext.elastic.Data: interface missing argument 'width'.")
+                raise RuntimeError(
+                    "chext.elastic.Data: interface missing argument 'width'.")
 
             width = interface.args["width"]
 
             if not isinstance(width, int):
-                raise RuntimeError("chext.elastic.Data: interface argument 'width' must be an integer.")
+                raise RuntimeError(
+                    "chext.elastic.Data: interface argument 'width' must be an integer.")
 
             return f"chext_test::elastic::DataLastSignals<{width}>"
 
