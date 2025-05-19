@@ -28,7 +28,7 @@ class EncodedData:
     entries: List[EncodedDataEntry]
 
     @cached_property
-    def is_primitive(self):
+    def isPrimitive(self):
         return len(self.entries) == 1 and self.entries[0].path == ""
 
 
@@ -91,13 +91,13 @@ class WrapperLocalElasticProtocolHook(wrapper.Hook):
             d.separate()
 
         def processEncodedData(encodedData: EncodedData):
-            if encodedData.is_primitive:
+            if encodedData.isPrimitive:
                 return
 
             def createValueType():
                 def f(d: codegen.Dumper) -> None:
                     d.separate()
-                    d.iwriteln(f"class {encodedData.name}_value {{")
+                    d.iwriteln(f"struct {encodedData.name}_value {{")
                     d.indent_in()
 
                     members: List[EncodedDataEntry] = []
@@ -155,13 +155,14 @@ class WrapperLocalElasticProtocolHook(wrapper.Hook):
 
                     d.indent_out()
                     d.iwriteln(f"}};")
+                    d.separate()
 
                 cg.addPublicBlock(f)
 
             def createSignalsType():
                 def f(d: codegen.Dumper) -> None:
                     d.separate()
-                    d.iwriteln(f"class {encodedData.name}_signals {{")
+                    d.iwriteln(f"struct {encodedData.name}_signals {{")
                     d.indent_in()
 
                     d.iwriteln(f"using value_type = {encodedData.name}_value;")
@@ -203,7 +204,8 @@ class WrapperLocalElasticProtocolHook(wrapper.Hook):
 
                         # read to
                         d.iwriteln(
-                            f"void readTo(value_type & x) {{")
+                            f"void readTo(value_type & x) {{"
+                        )
                         d.indent_in()
 
                         d.iwriteln(f"x.~value_type();")
@@ -213,12 +215,14 @@ class WrapperLocalElasticProtocolHook(wrapper.Hook):
                         d.indent_in()
 
                         for member in members:
-                            if member.width <= 64:
+                            if member.width == 1:
+                                d.iwrite(
+                                    f'{member.path}.read()'
+                                )
+                            elif member.width <= 64:
                                 dataType = None
 
-                                if member.width == 1:
-                                    dataType = "bool"
-                                elif member.width <= 8:
+                                if member.width <= 8:
                                     dataType = "std::uint8_t"
                                 elif member.width <= 16:
                                     dataType = "std::uint16_t"
@@ -249,7 +253,8 @@ class WrapperLocalElasticProtocolHook(wrapper.Hook):
 
                         # write from
                         d.iwriteln(
-                            f"void writeFrom(value_type const& x) {{")
+                            f"void writeFrom(value_type const& x) {{"
+                        )
                         d.indent_in()
 
                         for member in members:
@@ -266,8 +271,19 @@ class WrapperLocalElasticProtocolHook(wrapper.Hook):
                         )
                         d.separate()
 
+                        d.iwriteln(
+                            f"void readTo(value_type &) {{ }}"
+                        )
+                        d.separate()
+
+                        d.iwriteln(
+                            f"void writeFrom(value_type const&) {{ }}"
+                        )
+                        d.separate()
+
                     d.indent_out()
                     d.iwriteln(f"}};")
+                    d.separate()
 
                 cg.addPublicBlock(f)
 
@@ -289,7 +305,6 @@ class WrapperLocalElasticProtocol:
     protocolName: str
     signalsType: str
     signals: List[str]
-    isPrimitive: bool
 
 
 @wrapper.registerInterfaceHandler
@@ -337,18 +352,42 @@ class ElasticProtocolHandler(wrapper.StatefulInterfaceHandler):
         cg.addCtorBlock(ctor)
 
         def registerWrapperLocalElasticProtocol(encodedData: EncodedData):
-            signals = []
+            if encodedData.isPrimitive:
+                width = encodedData.entries[0].width
 
-            for entry in encodedData.entries:
-                if entry.width > 0:
-                    signals.append(entry.path)
+                if width == 0:
+                    self._wrapperLocalElasticProtocols[encodedData.name] = WrapperLocalElasticProtocol(
+                        encodedData.name,
+                        "chext_test::elastic::ZeroWidthSignals",
+                        []
+                    )
 
-            self._wrapperLocalElasticProtocols[encodedData.name] = WrapperLocalElasticProtocol(
-                encodedData.name,
-                f"{encodedData.name}_signals",
-                signals,
-                encodedData.is_primitive
-            )
+                elif width == 1:
+                    self._wrapperLocalElasticProtocols[encodedData.name] = WrapperLocalElasticProtocol(
+                        encodedData.name,
+                        "sc_core::sc_signal<bool, sc_core::SC_MANY_WRITERS>",
+                        [""]
+                    )
+
+                else:
+                    self._wrapperLocalElasticProtocols[encodedData.name] = WrapperLocalElasticProtocol(
+                        encodedData.name,
+                        f"sc_core::sc_signal<sc_dt::sc_bv<{width}>, sc_core::SC_MANY_WRITERS>",
+                        [""]
+                    )
+
+            else:
+                signals = []
+
+                for entry in encodedData.entries:
+                    if entry.width > 0:
+                        signals.append(entry.path)
+
+                self._wrapperLocalElasticProtocols[encodedData.name] = WrapperLocalElasticProtocol(
+                    encodedData.name,
+                    f"{encodedData.name}_signals",
+                    signals
+                )
 
         if (encodedDataList := wrapper.module.args.get("encodedDataList")) is not None:
             assert isinstance(encodedDataList, EncodedDataList)
@@ -420,9 +459,6 @@ class ElasticProtocolHandler(wrapper.StatefulInterfaceHandler):
         self._ctorBlocks.append(ctorBlock)
 
     def _implementWrapperLocalElasticProtocol(self, interface: hdlinfo.Interface, protocol: WrapperLocalElasticProtocol) -> None:
-        if protocol.isPrimitive:
-            raise RuntimeError("WrapperLocalElasticProtocol shall not be a primitive!")
-
         bitsSignalType = protocol.signalsType
         name = interface.name
 
@@ -447,9 +483,14 @@ class ElasticProtocolHandler(wrapper.StatefulInterfaceHandler):
 
         def ctorBlock(d: codegen.Dumper) -> None:
             for signal in protocol.signals:
-                d.iwriteln(
-                    f"verilatedModule_.{name}_bits_{signal}(this->{name}.bits.{signal});"
-                )
+                if signal == "":
+                    d.iwriteln(
+                        f"verilatedModule_.{name}_bits(this->{name}.bits);"
+                    )
+                else:
+                    d.iwriteln(
+                        f"verilatedModule_.{name}_bits_{signal}(this->{name}.bits.{signal});"
+                    )
             d.iwriteln(f"verilatedModule_.{name}_ready(this->{name}.ready);")
             d.iwriteln(f"verilatedModule_.{name}_valid(this->{name}.valid);")
 

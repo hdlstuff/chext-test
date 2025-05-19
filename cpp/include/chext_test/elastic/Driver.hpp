@@ -53,6 +53,33 @@ struct WriteHandler<SignalT, ValueT, std::enable_if_t<HasWriteFrom_v<SignalT>>> 
     }
 };
 
+// sc_signal<bool> has a private value_type. This is a workaround for that
+template<typename T, typename = void /* for SFINAE */>
+struct ValueTypeImpl {
+    using value_type = typename T::value_type;
+};
+
+template<sc_core::sc_writer_policy POL>
+struct ValueTypeImpl<sc_core::sc_signal<bool, POL>, void> {
+    using value_type = bool;
+};
+
+struct ZeroWidth {
+    JQR_DECL(ZeroWidth)
+
+    JQR_TO_STRING
+    JQR_OSTREAM
+    JQR_COMP_EQ
+};
+
+struct ZeroWidthSignals {
+    using value_type = ZeroWidth;
+
+    ZeroWidthSignals(const char*) { /* empty ctor */ }
+    void readTo(value_type&) {}
+    void writeFrom(value_type const&) {}
+};
+
 namespace detail {
 
 using namespace sc_core;
@@ -117,7 +144,7 @@ template<
     bool PosEdgeClock = true,
     bool ActiveHighReset = true>
 struct Sink : SinkBase {
-    using BitsValueT = typename BitsSignalT::value_type;
+    using BitsValueT = typename ValueTypeImpl<BitsSignalT>::value_type;
 
     Sink(
         std::string name,
@@ -207,7 +234,7 @@ template<
     bool PosEdgeClock = true,
     bool ActiveHighReset = true>
 struct Source : SourceBase {
-    using BitsValueT = typename BitsSignalT::value_type;
+    using BitsValueT = typename ValueTypeImpl<BitsSignalT>::value_type;
 
     Source(
         std::string name,
@@ -264,6 +291,7 @@ public:
 using detail::SinkBase;
 using detail::Sink;
 
+using detail::SourceBase;
 using detail::Source;
 // clang-format on
 

@@ -37,7 +37,7 @@ public:
 
     SC_HAS_PROCESS(ScmyModule);
 
-    class MyTestBundle1_value {
+    struct MyTestBundle1_value {
         // f0: UInt<8>
         std::uint8_t f0;
 
@@ -79,7 +79,7 @@ public:
         JQR_COMP_EQ
     };
 
-    class MyTestBundle1_signals {
+    struct MyTestBundle1_signals {
         using value_type = MyTestBundle1_value;
 
         // f0: UInt<8>
@@ -127,7 +127,7 @@ public:
                 static_cast<std::uint8_t>(f2_2.read().to_uint64()),
                 static_cast<std::uint8_t>(f2_3.read().to_uint64()),
                 static_cast<std::uint16_t>(f3_f0.read().to_uint64()),
-                static_cast<bool>(f3_f1.read().to_uint64())
+                f3_f1.read()
             };
         }
 
@@ -144,7 +144,7 @@ public:
 
     };
 
-    class MyTestBundle2_value {
+    struct MyTestBundle2_value {
         // f0_0: UInt<6>
         std::uint8_t f0_0;
 
@@ -178,7 +178,7 @@ public:
         JQR_COMP_EQ
     };
 
-    class MyTestBundle2_signals {
+    struct MyTestBundle2_signals {
         using value_type = MyTestBundle2_value;
 
         // f0_0: UInt<6>
@@ -216,7 +216,7 @@ public:
                 static_cast<std::uint8_t>(f0_2.read().to_uint64()),
                 static_cast<std::uint8_t>(f0_3.read().to_uint64()),
                 static_cast<std::uint16_t>(f1_f0.read().to_uint64()),
-                static_cast<bool>(f1_f1.read().to_uint64())
+                f1_f1.read()
             };
         }
 
@@ -230,6 +230,7 @@ public:
         }
 
     };
+
     /* BEGIN: clock ports (decl) */
     sc_core::sc_in_clk clock;
     /* END: clock ports (decl) */
