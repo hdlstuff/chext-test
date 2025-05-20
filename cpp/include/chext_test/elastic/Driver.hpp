@@ -5,7 +5,10 @@
 #include <chext_test/util/ReadyValid.hpp>
 #include <chext_test/util/Reference.hpp>
 
+#include <jqr/core.hpp>
 #include <jqr/inspect.hpp>
+#include <jqr/dump.hpp>
+#include <jqr/comp_eq.hpp>
 
 #include <systemc>
 

@@ -82,8 +82,9 @@ class WrapperLocalElasticProtocolHook(wrapper.Hook):
             )
             d.iwriteln("#include <cstdint>")
             d.iwriteln("#include <fmt/core.h>")
-            d.iwriteln(f"#include {mkIncludeStr('jqr/comp_eq.hpp')}")
+            d.iwriteln("#include <fmt/ostream.h>")
             d.iwriteln(f"#include {mkIncludeStr('jqr/core.hpp')}")
+            d.iwriteln(f"#include {mkIncludeStr('jqr/comp_eq.hpp')}")
             d.iwriteln(f"#include {mkIncludeStr('jqr/dump.hpp')}")
             d.iwriteln(
                 "/* END: chext_test includes added by 'EncodedDataListHook' */"
