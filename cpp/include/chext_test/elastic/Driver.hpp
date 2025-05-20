@@ -24,14 +24,14 @@ struct ReadHandler;
 
 template<typename SignalT, typename ValueT>
 struct ReadHandler<SignalT, ValueT, std::enable_if_t<HasRead_v<SignalT> && !HasReadTo_v<SignalT>>> {
-    static void read(SignalT const& signal, ValueT& value) {
+    static void read(SignalT& signal, ValueT& value) {
         value = signal.read();
     }
 };
 
 template<typename SignalT, typename ValueT>
 struct ReadHandler<SignalT, ValueT, std::enable_if_t<HasReadTo_v<SignalT>>> {
-    static void read(SignalT const& signal, ValueT& value) {
+    static void read(SignalT& signal, ValueT& value) {
         signal.readTo(value);
     }
 };
