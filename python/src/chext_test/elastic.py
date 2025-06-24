@@ -111,16 +111,27 @@ class WrapperLocalElasticProtocolHook(wrapper.Hook):
 
                         dataType = None
 
+                        # Note: I do not really like copying and pasting stuff below
+                        # Fix this later.
+                        def makeStdIntType(width):
+                            if member.tpe.startswith("UInt"):
+                                return f"std::uint{width}_t"
+                            elif member.tpe.startswith("SInt"):
+                                return f"std::int{width}_t"
+                            else:
+                                print("WARNING: makeStdIntType: not UInt or SInt? defaulting to std::uintN_t")
+                                return f"std::uint{width}_t"
+
                         if member.width == 1:
                             dataType = "bool"
                         elif member.width <= 8:
-                            dataType = "std::uint8_t"
+                            dataType = makeStdIntType(8)
                         elif member.width <= 16:
-                            dataType = "std::uint16_t"
+                            dataType = makeStdIntType(16)
                         elif member.width <= 32:
-                            dataType = "std::uint32_t"
+                            dataType = makeStdIntType(32)
                         elif member.width <= 64:
-                            dataType = "std::uint64_t"
+                            dataType = makeStdIntType(64)
                         else:
                             dataType = f"sc_dt::sc_bv<{member.width}>"
 
@@ -221,19 +232,32 @@ class WrapperLocalElasticProtocolHook(wrapper.Hook):
                                     f'{member.path}.read()'
                                 )
                             elif member.width <= 64:
-                                dataType = None
+                                def makeStdIntType(width):
+                                    if member.tpe.startswith("UInt"):
+                                        return f"std::uint{width}_t"
+                                    elif member.tpe.startswith("SInt"):
+                                        return f"std::int{width}_t"
+                                    else:
+                                        print("WARNING: makeStdIntType: not UInt or SInt? defaulting to std::uintN_t")
+                                        return f"std::uint{width}_t"
 
-                                if member.width <= 8:
-                                    dataType = "std::uint8_t"
+                                if member.width == 1:
+                                    dataType = "bool"
+                                elif member.width <= 8:
+                                    dataType = makeStdIntType(8)
                                 elif member.width <= 16:
-                                    dataType = "std::uint16_t"
+                                    dataType = makeStdIntType(16)
                                 elif member.width <= 32:
-                                    dataType = "std::uint32_t"
+                                    dataType = makeStdIntType(32)
                                 elif member.width <= 64:
-                                    dataType = "std::uint64_t"
+                                    dataType = makeStdIntType(64)
+                                else:
+                                    dataType = f"sc_dt::sc_bv<{member.width}>"
+                                
+                                funcName = "to_uint64" if member.tpe.startswith("UInt") else "to_int64"
 
                                 d.iwrite(
-                                    f'static_cast<{dataType}>({member.path}.read().to_uint64())'
+                                    f'static_cast<{dataType}>({member.path}.read().{funcName}())'
                                 )
                             else:
                                 d.iwrite(
