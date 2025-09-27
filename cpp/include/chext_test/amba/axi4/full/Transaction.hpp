@@ -494,6 +494,7 @@ struct Memory : sc_core::sc_module {
         uint32_t numWrite,
         sc_core::sc_time latencyRead,
         sc_core::sc_time latencyWrite,
+        bool waitAfterLastW = false,
         bool log = false
     )
         : sc_module { name }
@@ -502,6 +503,7 @@ struct Memory : sc_core::sc_module {
         , numWrite_ { numWrite }
         , latencyRead_ { latencyRead }
         , latencyWrite_ { latencyWrite }
+        , waitAfterLastW_ { waitAfterLastW }
         , log_ { log } {
         assert(handler_ != nullptr);
 
@@ -672,7 +674,8 @@ struct Memory : sc_core::sc_module {
                     [&, i = i] {
                         while (true) {
                             auto aw = awFifos_[i]->read();
-                            sc_core::wait(latencyRead_);
+                            if (!waitAfterLastW_)
+                                sc_core::wait(latencyWrite_);
 
                             Transaction transaction { (uint16_t)master.config().wData, master.config().axi3Compat };
                             transaction.reset(aw->addr.to_uint64(), aw->len, aw->size, aw->burst);
@@ -685,6 +688,9 @@ struct Memory : sc_core::sc_module {
                                 handler_->write(master.config(), *aw, beat, *w, resp);
                                 delete w;
                             }
+
+                            if (waitAfterLastW_)
+                                sc_core::wait(latencyWrite_);
 
                             auto b = new Packets::WriteResponse { aw->id, resp };
                             bFifos_[i]->write(b);
@@ -742,7 +748,7 @@ private:
     std::shared_ptr<MemoryHandler> handler_;
     uint32_t numRead_, numWrite_;
     sc_core::sc_time latencyRead_, latencyWrite_;
-    bool log_;
+    bool waitAfterLastW_, log_;
 
     bool isRunning_ = false;
 
