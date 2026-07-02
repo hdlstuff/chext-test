@@ -47,23 +47,37 @@ template<
     unsigned ID_WIDTH,
     unsigned ADDR_WIDTH,
     unsigned DATA_WIDTH,
+    bool READ = true,
+    bool WRITE = true,
+    bool HAS_LOCK = true,
+    bool HAS_CACHE = true,
+    bool HAS_PROT = true,
+    bool HAS_QOS = true,
+    bool HAS_REGION = true,
+    bool AXI3_COMPAT = false,
     unsigned ARUSER_WIDTH = 0,
     unsigned RUSER_WIDTH = 0,
     unsigned AWUSER_WIDTH = 0,
     unsigned WUSER_WIDTH = 0,
-    unsigned BUSER_WIDTH = 0,
-    bool AXI3_COMPAT = false>
+    unsigned BUSER_WIDTH = 0>
 struct Master : MasterBase {
     using SignalsT = Signals<
         ID_WIDTH,
         ADDR_WIDTH,
         DATA_WIDTH,
+        READ,
+        WRITE,
+        HAS_LOCK,
+        HAS_CACHE,
+        HAS_PROT,
+        HAS_QOS,
+        HAS_REGION,
+        AXI3_COMPAT,
         ARUSER_WIDTH,
         RUSER_WIDTH,
         AWUSER_WIDTH,
         WUSER_WIDTH,
-        BUSER_WIDTH,
-        AXI3_COMPAT>;
+        BUSER_WIDTH>;
 
     Master(const char* name, sc_in_clk const& clock, sc_in<bool> const& reset)
         : MasterBase { SignalsT::config }
@@ -139,23 +153,37 @@ template<
     unsigned ID_WIDTH,
     unsigned ADDR_WIDTH,
     unsigned DATA_WIDTH,
+    bool READ = true,
+    bool WRITE = true,
+    bool HAS_LOCK = true,
+    bool HAS_CACHE = true,
+    bool HAS_PROT = true,
+    bool HAS_QOS = true,
+    bool HAS_REGION = true,
+    bool AXI3_COMPAT = false,
     unsigned ARUSER_WIDTH = 0,
     unsigned RUSER_WIDTH = 0,
     unsigned AWUSER_WIDTH = 0,
     unsigned WUSER_WIDTH = 0,
-    unsigned BUSER_WIDTH = 0,
-    bool AXI3_COMPAT = false>
+    unsigned BUSER_WIDTH = 0>
 struct Slave : SlaveBase {
     using SignalsT = Signals<
         ID_WIDTH,
         ADDR_WIDTH,
         DATA_WIDTH,
+        READ,
+        WRITE,
+        HAS_LOCK,
+        HAS_CACHE,
+        HAS_PROT,
+        HAS_QOS,
+        HAS_REGION,
+        AXI3_COMPAT,
         ARUSER_WIDTH,
         RUSER_WIDTH,
         AWUSER_WIDTH,
         WUSER_WIDTH,
-        BUSER_WIDTH,
-        AXI3_COMPAT>;
+        BUSER_WIDTH>;
 
     Slave(const char* name, sc_in_clk const& clock, sc_in<bool> const& reset)
         : SlaveBase { SignalsT::config }

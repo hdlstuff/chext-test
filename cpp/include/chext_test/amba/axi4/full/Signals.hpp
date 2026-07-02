@@ -3,9 +3,11 @@
 
 #include <chext_test/amba/axi4/full/Packets.hpp>
 #include <chext_test/util/Exception.hpp>
+#include <chext_test/util/VerilatorPort.hpp>
+
 #include <fmt/core.h>
+
 #include <systemc>
-#include <cstdint>
 #include <type_traits>
 
 namespace chext_test::amba::axi4::full {
@@ -14,53 +16,6 @@ namespace detail {
 
 using namespace sc_core;
 using namespace sc_dt;
-
-#ifndef CHEXT_TEST_VERILATOR_PINS_BV_VALUE
-#define CHEXT_TEST_VERILATOR_PINS_BV_VALUE 65
-#endif
-
-template<unsigned WIDTH>
-struct verilator_port_type {
-    using type = sc_bv<WIDTH>;
-};
-
-template<>
-struct verilator_port_type<1> {
-    using type = bool;
-};
-
-template<unsigned WIDTH>
-    requires(WIDTH >= 2 && WIDTH <= 32 && WIDTH < CHEXT_TEST_VERILATOR_PINS_BV_VALUE)
-struct verilator_port_type<WIDTH> {
-    using type = std::uint32_t;
-};
-
-template<unsigned WIDTH>
-    requires(WIDTH >= 33 && WIDTH <= 64 && WIDTH < CHEXT_TEST_VERILATOR_PINS_BV_VALUE)
-struct verilator_port_type<WIDTH> {
-    using type = std::uint64_t;
-};
-
-template<unsigned WIDTH>
-using verilator_port_t = typename verilator_port_type<WIDTH>::type;
-
-template<unsigned WIDTH>
-struct verilator_port_helper {
-    using type = verilator_port_t<WIDTH>;
-
-    template<sc_writer_policy WP>
-    static auto peek(sc_signal<type, WP> const& signal) {
-        if constexpr (std::is_same_v<type, bool>)
-            return signal.read();
-        else if constexpr (std::is_integral_v<type>)
-            return signal.read();
-        else
-            return signal.read().to_uint();
-    }
-};
-
-template<unsigned WIDTH>
-using verilator_port_signal_t = typename verilator_port_helper<WIDTH>::type;
 
 constexpr unsigned notZeroOr(unsigned x, unsigned y) {
     return x > 0 ? x : y;
@@ -77,22 +32,85 @@ inline void validateWidth(char const* field, int actual, unsigned expected) {
     }
 }
 
+struct AbsentSignal {
+    explicit AbsentSignal(char const*) {}
+};
+
+template<bool PRESENT, unsigned WIDTH>
+using optional_signal_t = std::conditional_t<
+    PRESENT,
+    sc_signal<util::verilator_port_signal_t<notZeroOr(WIDTH, 1)>, SC_MANY_WRITERS>,
+    AbsentSignal>;
+
+template<unsigned WIDTH>
+using signal_t = sc_signal<util::verilator_port_signal_t<WIDTH>, SC_MANY_WRITERS>;
+
+// Verilator may expose a port as bool/uint/sc_bv depending on --pins-bv.
+// Packet destinations are either dynamic bit-vectors or scalar metadata fields.
+template<bool PRESENT, unsigned WIDTH, typename SignalT, typename ValueT>
+void writePacketFieldToPortIfPresent(SignalT& signal, ValueT const& value) {
+    if constexpr (PRESENT)
+        util::verilator_port_write<notZeroOr(WIDTH, 1)>(signal, value);
+}
+
+template<bool PRESENT, unsigned WIDTH, typename SignalT, typename ValueT>
+void readPortToPacketBvIfPresent(SignalT const& signal, ValueT& value) {
+    if constexpr (PRESENT)
+        util::verilator_port_read_bv<notZeroOr(WIDTH, 1)>(signal, value);
+}
+
+template<bool PRESENT, unsigned WIDTH, typename SignalT, typename ValueT>
+void readPortToPacketScalarIfPresent(SignalT const& signal, ValueT& value) {
+    if constexpr (PRESENT)
+        value = static_cast<ValueT>(util::verilator_port_read_uint<notZeroOr(WIDTH, 1)>(signal));
+}
+
+template<unsigned WIDTH, typename SignalT, typename ValueT>
+void writePacketFieldToPort(SignalT& signal, ValueT const& value) {
+    util::verilator_port_write<WIDTH>(signal, value);
+}
+
+template<unsigned WIDTH, typename SignalT, typename ValueT>
+void readPortToPacketBv(SignalT const& signal, ValueT& value) {
+    util::verilator_port_read_bv<WIDTH>(signal, value);
+}
+
+template<unsigned WIDTH, typename SignalT, typename ValueT>
+void readPortToPacketScalar(SignalT const& signal, ValueT& value) {
+    value = static_cast<ValueT>(util::verilator_port_read_uint<WIDTH>(signal));
+}
+
 template<
     unsigned ID_WIDTH,
     unsigned ADDR_WIDTH,
     unsigned DATA_WIDTH,
+    bool READ = true,
+    bool WRITE = true,
+    bool HAS_LOCK = true,
+    bool HAS_CACHE = true,
+    bool HAS_PROT = true,
+    bool HAS_QOS = true,
+    bool HAS_REGION = true,
+    bool AXI3_COMPAT = false,
     unsigned ARUSER_WIDTH = 0,
     unsigned RUSER_WIDTH = 0,
     unsigned AWUSER_WIDTH = 0,
     unsigned WUSER_WIDTH = 0,
-    unsigned BUSER_WIDTH = 0,
-    bool AXI3_COMPAT = false>
+    unsigned BUSER_WIDTH = 0>
 struct Signals {
     static constexpr Config config {
         ConfigSpec {
             .wId = ID_WIDTH,
             .wAddr = ADDR_WIDTH,
             .wData = DATA_WIDTH,
+            .read = READ,
+            .write = WRITE,
+            .lite = false,
+            .hasLock = HAS_LOCK,
+            .hasCache = HAS_CACHE,
+            .hasProt = HAS_PROT,
+            .hasQos = HAS_QOS,
+            .hasRegion = HAS_REGION,
             .axi3Compat = AXI3_COMPAT,
             .wUserAR = ARUSER_WIDTH,
             .wUserR = RUSER_WIDTH,
@@ -102,36 +120,29 @@ struct Signals {
         }
     };
 
-    static constexpr unsigned wId = ID_WIDTH;
-    static constexpr unsigned wAddr = ADDR_WIDTH;
-    static constexpr unsigned wData = DATA_WIDTH;
-    static constexpr unsigned wUserAR = ARUSER_WIDTH;
-    static constexpr unsigned wUserR = RUSER_WIDTH;
-    static constexpr unsigned wUserAW = AWUSER_WIDTH;
-    static constexpr unsigned wUserW = WUSER_WIDTH;
-    static constexpr unsigned wUserB = BUSER_WIDTH;
+private:
+    static constexpr bool hasId = config.wId > 0;
+    static constexpr bool hasUserAR = config.wUserAR > 0;
+    static constexpr bool hasUserR = config.wUserR > 0;
+    static constexpr bool hasUserAW = config.wUserAW > 0;
+    static constexpr bool hasUserW = config.wUserW > 0;
+    static constexpr bool hasUserB = config.wUserB > 0;
 
-    static constexpr bool axi3Compat = AXI3_COMPAT;
-    static constexpr unsigned wLen = config.wLen;
-    static constexpr unsigned wLock = config.wLock;
-
-    static constexpr unsigned wStrobe = config.wStrobe;
-    static constexpr unsigned wStrb = wStrobe;
-
+public:
     struct ReadAddress {
         using value_type = Packets::ReadAddress;
 
-        sc_signal<sc_bv<notZeroOr(wId, 32)>, SC_MANY_WRITERS> id;
-        sc_signal<sc_bv<wAddr>, SC_MANY_WRITERS> addr;
-        sc_signal<sc_bv<wLen>, SC_MANY_WRITERS> len;
-        sc_signal<sc_bv<3>, SC_MANY_WRITERS> size;
-        sc_signal<sc_bv<2>, SC_MANY_WRITERS> burst;
-        sc_signal<verilator_port_signal_t<wLock>, SC_MANY_WRITERS> lock;
-        sc_signal<sc_bv<4>, SC_MANY_WRITERS> cache;
-        sc_signal<sc_bv<3>, SC_MANY_WRITERS> prot;
-        sc_signal<sc_bv<4>, SC_MANY_WRITERS> qos;
-        sc_signal<sc_bv<4>, SC_MANY_WRITERS> region;
-        sc_signal<sc_bv<notZeroOr(wUserAR, 32)>, SC_MANY_WRITERS> user;
+        [[no_unique_address]] optional_signal_t<hasId, config.wId> id;
+        signal_t<config.wAddr> addr;
+        signal_t<config.wLen> len;
+        signal_t<3> size;
+        signal_t<2> burst;
+        [[no_unique_address]] optional_signal_t<config.hasLock, config.wLock> lock;
+        [[no_unique_address]] optional_signal_t<config.hasCache, config.wCache> cache;
+        [[no_unique_address]] optional_signal_t<config.hasProt, config.wProt> prot;
+        [[no_unique_address]] optional_signal_t<config.hasQos, config.wQos> qos;
+        [[no_unique_address]] optional_signal_t<config.hasRegion, config.wRegion> region;
+        [[no_unique_address]] optional_signal_t<hasUserAR, config.wUserAR> user;
 
         ReadAddress(const char* name)
             : id(fmt::format("{}_id", name).c_str())
@@ -147,45 +158,45 @@ struct Signals {
             , user(fmt::format("{}_user", name).c_str()) {}
 
         void writeFrom(value_type const& packet) {
-            validateWidth("ar.id", packet.id.length(), notZeroOr(wId, 32));
-            validateWidth("ar.addr", packet.addr.length(), wAddr);
-            validateWidth("ar.user", packet.user.length(), notZeroOr(wUserAR, 32));
-            id.write(packet.id);
-            addr.write(packet.addr);
-            len.write(packet.len);
-            size.write(packet.size);
-            burst.write(packet.burst);
-            lock.write(packet.lock);
-            cache.write(packet.cache);
-            prot.write(packet.prot);
-            qos.write(packet.qos);
-            region.write(packet.region);
-            user.write(packet.user);
+            validateWidth("ar.id", packet.id.length(), notZeroOr(config.wId, 32));
+            validateWidth("ar.addr", packet.addr.length(), config.wAddr);
+            validateWidth("ar.user", packet.user.length(), notZeroOr(config.wUserAR, 32));
+            writePacketFieldToPortIfPresent<hasId, config.wId>(id, packet.id);
+            writePacketFieldToPort<config.wAddr>(addr, packet.addr);
+            writePacketFieldToPort<config.wLen>(len, packet.len);
+            writePacketFieldToPort<3>(size, packet.size);
+            writePacketFieldToPort<2>(burst, packet.burst);
+            writePacketFieldToPortIfPresent<config.hasLock, config.wLock>(lock, packet.lock);
+            writePacketFieldToPortIfPresent<config.hasCache, config.wCache>(cache, packet.cache);
+            writePacketFieldToPortIfPresent<config.hasProt, config.wProt>(prot, packet.prot);
+            writePacketFieldToPortIfPresent<config.hasQos, config.wQos>(qos, packet.qos);
+            writePacketFieldToPortIfPresent<config.hasRegion, config.wRegion>(region, packet.region);
+            writePacketFieldToPortIfPresent<hasUserAR, config.wUserAR>(user, packet.user);
         }
 
         void readTo(value_type& packet) const {
-            packet.id = id.read();
-            packet.addr = addr.read();
-            packet.len = len.read().to_uint();
-            packet.size = size.read().to_uint();
-            packet.burst = burst.read().to_uint();
-            packet.lock = verilator_port_helper<wLock>::peek(lock);
-            packet.cache = cache.read().to_uint();
-            packet.prot = prot.read().to_uint();
-            packet.qos = qos.read().to_uint();
-            packet.region = region.read().to_uint();
-            packet.user = user.read();
+            readPortToPacketBvIfPresent<hasId, config.wId>(id, packet.id);
+            readPortToPacketBv<config.wAddr>(addr, packet.addr);
+            readPortToPacketScalar<config.wLen>(len, packet.len);
+            readPortToPacketScalar<3>(size, packet.size);
+            readPortToPacketScalar<2>(burst, packet.burst);
+            readPortToPacketScalarIfPresent<config.hasLock, config.wLock>(lock, packet.lock);
+            readPortToPacketScalarIfPresent<config.hasCache, config.wCache>(cache, packet.cache);
+            readPortToPacketScalarIfPresent<config.hasProt, config.wProt>(prot, packet.prot);
+            readPortToPacketScalarIfPresent<config.hasQos, config.wQos>(qos, packet.qos);
+            readPortToPacketScalarIfPresent<config.hasRegion, config.wRegion>(region, packet.region);
+            readPortToPacketBvIfPresent<hasUserAR, config.wUserAR>(user, packet.user);
         }
     };
 
     struct ReadData {
         using value_type = Packets::ReadData;
 
-        sc_signal<sc_bv<notZeroOr(wId, 32)>, SC_MANY_WRITERS> id;
-        sc_signal<sc_bv<wData>, SC_MANY_WRITERS> data;
-        sc_signal<sc_bv<2>, SC_MANY_WRITERS> resp;
-        sc_signal<bool, SC_MANY_WRITERS> last;
-        sc_signal<sc_bv<notZeroOr(wUserR, 32)>, SC_MANY_WRITERS> user;
+        [[no_unique_address]] optional_signal_t<hasId, config.wId> id;
+        signal_t<config.wData> data;
+        signal_t<2> resp;
+        signal_t<1> last;
+        [[no_unique_address]] optional_signal_t<hasUserR, config.wUserR> user;
 
         ReadData(const char* name)
             : id(fmt::format("{}_id", name).c_str())
@@ -195,39 +206,39 @@ struct Signals {
             , user(fmt::format("{}_user", name).c_str()) {}
 
         void writeFrom(value_type const& packet) {
-            validateWidth("r.id", packet.id.length(), notZeroOr(wId, 32));
-            validateWidth("r.data", packet.data.length(), wData);
-            validateWidth("r.user", packet.user.length(), notZeroOr(wUserR, 32));
-            id.write(packet.id);
-            data.write(packet.data);
-            resp.write(packet.resp);
-            last.write(packet.last);
-            user.write(packet.user);
+            validateWidth("r.id", packet.id.length(), notZeroOr(config.wId, 32));
+            validateWidth("r.data", packet.data.length(), config.wData);
+            validateWidth("r.user", packet.user.length(), notZeroOr(config.wUserR, 32));
+            writePacketFieldToPortIfPresent<hasId, config.wId>(id, packet.id);
+            writePacketFieldToPort<config.wData>(data, packet.data);
+            writePacketFieldToPort<2>(resp, packet.resp);
+            writePacketFieldToPort<1>(last, packet.last);
+            writePacketFieldToPortIfPresent<hasUserR, config.wUserR>(user, packet.user);
         }
 
         void readTo(value_type& packet) const {
-            packet.id = id.read();
-            packet.data = data.read();
-            packet.resp = resp.read().to_uint();
-            packet.last = last.read();
-            packet.user = user.read();
+            readPortToPacketBvIfPresent<hasId, config.wId>(id, packet.id);
+            readPortToPacketBv<config.wData>(data, packet.data);
+            readPortToPacketScalar<2>(resp, packet.resp);
+            readPortToPacketScalar<1>(last, packet.last);
+            readPortToPacketBvIfPresent<hasUserR, config.wUserR>(user, packet.user);
         }
     };
 
     struct WriteAddress {
         using value_type = Packets::WriteAddress;
 
-        sc_signal<sc_bv<notZeroOr(wId, 32)>, SC_MANY_WRITERS> id;
-        sc_signal<sc_bv<wAddr>, SC_MANY_WRITERS> addr;
-        sc_signal<sc_bv<wLen>, SC_MANY_WRITERS> len;
-        sc_signal<sc_bv<3>, SC_MANY_WRITERS> size;
-        sc_signal<sc_bv<2>, SC_MANY_WRITERS> burst;
-        sc_signal<verilator_port_signal_t<wLock>, SC_MANY_WRITERS> lock;
-        sc_signal<sc_bv<4>, SC_MANY_WRITERS> cache;
-        sc_signal<sc_bv<3>, SC_MANY_WRITERS> prot;
-        sc_signal<sc_bv<4>, SC_MANY_WRITERS> qos;
-        sc_signal<sc_bv<4>, SC_MANY_WRITERS> region;
-        sc_signal<sc_bv<notZeroOr(wUserAW, 32)>, SC_MANY_WRITERS> user;
+        [[no_unique_address]] optional_signal_t<hasId, config.wId> id;
+        signal_t<config.wAddr> addr;
+        signal_t<config.wLen> len;
+        signal_t<3> size;
+        signal_t<2> burst;
+        [[no_unique_address]] optional_signal_t<config.hasLock, config.wLock> lock;
+        [[no_unique_address]] optional_signal_t<config.hasCache, config.wCache> cache;
+        [[no_unique_address]] optional_signal_t<config.hasProt, config.wProt> prot;
+        [[no_unique_address]] optional_signal_t<config.hasQos, config.wQos> qos;
+        [[no_unique_address]] optional_signal_t<config.hasRegion, config.wRegion> region;
+        [[no_unique_address]] optional_signal_t<hasUserAW, config.wUserAW> user;
 
         WriteAddress(const char* name)
             : id(fmt::format("{}_id", name).c_str())
@@ -243,44 +254,44 @@ struct Signals {
             , user(fmt::format("{}_user", name).c_str()) {}
 
         void writeFrom(value_type const& packet) {
-            validateWidth("aw.id", packet.id.length(), notZeroOr(wId, 32));
-            validateWidth("aw.addr", packet.addr.length(), wAddr);
-            validateWidth("aw.user", packet.user.length(), notZeroOr(wUserAW, 32));
-            id.write(packet.id);
-            addr.write(packet.addr);
-            len.write(packet.len);
-            size.write(packet.size);
-            burst.write(packet.burst);
-            lock.write(packet.lock);
-            cache.write(packet.cache);
-            prot.write(packet.prot);
-            qos.write(packet.qos);
-            region.write(packet.region);
-            user.write(packet.user);
+            validateWidth("aw.id", packet.id.length(), notZeroOr(config.wId, 32));
+            validateWidth("aw.addr", packet.addr.length(), config.wAddr);
+            validateWidth("aw.user", packet.user.length(), notZeroOr(config.wUserAW, 32));
+            writePacketFieldToPortIfPresent<hasId, config.wId>(id, packet.id);
+            writePacketFieldToPort<config.wAddr>(addr, packet.addr);
+            writePacketFieldToPort<config.wLen>(len, packet.len);
+            writePacketFieldToPort<3>(size, packet.size);
+            writePacketFieldToPort<2>(burst, packet.burst);
+            writePacketFieldToPortIfPresent<config.hasLock, config.wLock>(lock, packet.lock);
+            writePacketFieldToPortIfPresent<config.hasCache, config.wCache>(cache, packet.cache);
+            writePacketFieldToPortIfPresent<config.hasProt, config.wProt>(prot, packet.prot);
+            writePacketFieldToPortIfPresent<config.hasQos, config.wQos>(qos, packet.qos);
+            writePacketFieldToPortIfPresent<config.hasRegion, config.wRegion>(region, packet.region);
+            writePacketFieldToPortIfPresent<hasUserAW, config.wUserAW>(user, packet.user);
         }
 
         void readTo(value_type& packet) const {
-            packet.id = id.read();
-            packet.addr = addr.read();
-            packet.len = len.read().to_uint();
-            packet.size = size.read().to_uint();
-            packet.burst = burst.read().to_uint();
-            packet.lock = verilator_port_helper<wLock>::peek(lock);
-            packet.cache = cache.read().to_uint();
-            packet.prot = prot.read().to_uint();
-            packet.qos = qos.read().to_uint();
-            packet.region = region.read().to_uint();
-            packet.user = user.read();
+            readPortToPacketBvIfPresent<hasId, config.wId>(id, packet.id);
+            readPortToPacketBv<config.wAddr>(addr, packet.addr);
+            readPortToPacketScalar<config.wLen>(len, packet.len);
+            readPortToPacketScalar<3>(size, packet.size);
+            readPortToPacketScalar<2>(burst, packet.burst);
+            readPortToPacketScalarIfPresent<config.hasLock, config.wLock>(lock, packet.lock);
+            readPortToPacketScalarIfPresent<config.hasCache, config.wCache>(cache, packet.cache);
+            readPortToPacketScalarIfPresent<config.hasProt, config.wProt>(prot, packet.prot);
+            readPortToPacketScalarIfPresent<config.hasQos, config.wQos>(qos, packet.qos);
+            readPortToPacketScalarIfPresent<config.hasRegion, config.wRegion>(region, packet.region);
+            readPortToPacketBvIfPresent<hasUserAW, config.wUserAW>(user, packet.user);
         }
     };
 
     struct WriteData {
         using value_type = Packets::WriteData;
 
-        sc_signal<sc_bv<wData>, SC_MANY_WRITERS> data;
-        sc_signal<sc_bv<wStrb>, SC_MANY_WRITERS> strb;
-        sc_signal<bool, SC_MANY_WRITERS> last;
-        sc_signal<sc_bv<notZeroOr(wUserW, 32)>, SC_MANY_WRITERS> user;
+        signal_t<config.wData> data;
+        signal_t<config.wStrobe> strb;
+        signal_t<1> last;
+        [[no_unique_address]] optional_signal_t<hasUserW, config.wUserW> user;
 
         WriteData(const char* name)
             : data(fmt::format("{}_data", name).c_str())
@@ -289,29 +300,29 @@ struct Signals {
             , user(fmt::format("{}_user", name).c_str()) {}
 
         void writeFrom(value_type const& packet) {
-            validateWidth("w.data", packet.data.length(), wData);
-            validateWidth("w.strb", packet.strb.length(), wStrobe);
-            validateWidth("w.user", packet.user.length(), notZeroOr(wUserW, 32));
-            data.write(packet.data);
-            strb.write(packet.strb);
-            last.write(packet.last);
-            user.write(packet.user);
+            validateWidth("w.data", packet.data.length(), config.wData);
+            validateWidth("w.strb", packet.strb.length(), config.wStrobe);
+            validateWidth("w.user", packet.user.length(), notZeroOr(config.wUserW, 32));
+            writePacketFieldToPort<config.wData>(data, packet.data);
+            writePacketFieldToPort<config.wStrobe>(strb, packet.strb);
+            writePacketFieldToPort<1>(last, packet.last);
+            writePacketFieldToPortIfPresent<hasUserW, config.wUserW>(user, packet.user);
         }
 
         void readTo(value_type& packet) const {
-            packet.data = data.read();
-            packet.strb = strb.read();
-            packet.last = last.read();
-            packet.user = user.read();
+            readPortToPacketBv<config.wData>(data, packet.data);
+            readPortToPacketBv<config.wStrobe>(strb, packet.strb);
+            readPortToPacketScalar<1>(last, packet.last);
+            readPortToPacketBvIfPresent<hasUserW, config.wUserW>(user, packet.user);
         }
     };
 
     struct WriteResponse {
         using value_type = Packets::WriteResponse;
 
-        sc_signal<sc_bv<notZeroOr(wId, 32)>, SC_MANY_WRITERS> id;
-        sc_signal<sc_bv<2>, SC_MANY_WRITERS> resp;
-        sc_signal<sc_bv<notZeroOr(wUserB, 32)>, SC_MANY_WRITERS> user;
+        [[no_unique_address]] optional_signal_t<hasId, config.wId> id;
+        signal_t<2> resp;
+        [[no_unique_address]] optional_signal_t<hasUserB, config.wUserB> user;
 
         WriteResponse(const char* name)
             : id(fmt::format("{}_id", name).c_str())
@@ -319,17 +330,17 @@ struct Signals {
             , user(fmt::format("{}_user", name).c_str()) {}
 
         void writeFrom(value_type const& packet) {
-            validateWidth("b.id", packet.id.length(), notZeroOr(wId, 32));
-            validateWidth("b.user", packet.user.length(), notZeroOr(wUserB, 32));
-            id.write(packet.id);
-            resp.write(packet.resp);
-            user.write(packet.user);
+            validateWidth("b.id", packet.id.length(), notZeroOr(config.wId, 32));
+            validateWidth("b.user", packet.user.length(), notZeroOr(config.wUserB, 32));
+            writePacketFieldToPortIfPresent<hasId, config.wId>(id, packet.id);
+            writePacketFieldToPort<2>(resp, packet.resp);
+            writePacketFieldToPortIfPresent<hasUserB, config.wUserB>(user, packet.user);
         }
 
         void readTo(value_type& packet) const {
-            packet.id = id.read();
-            packet.resp = resp.read().to_uint();
-            packet.user = user.read();
+            readPortToPacketBvIfPresent<hasId, config.wId>(id, packet.id);
+            readPortToPacketScalar<2>(resp, packet.resp);
+            readPortToPacketBvIfPresent<hasUserB, config.wUserB>(user, packet.user);
         }
     };
 };

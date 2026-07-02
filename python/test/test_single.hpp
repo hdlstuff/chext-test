@@ -9,8 +9,9 @@
 /* BEGIN: chext_test includes added by 'EncodedDataListHook' */
 #include <cstdint>
 #include <fmt/core.h>
-#include <jqr/comp_eq.hpp>
+#include <fmt/ostream.h>
 #include <jqr/core.hpp>
+#include <jqr/comp_eq.hpp>
 #include <jqr/dump.hpp>
 /* END: chext_test includes added by 'EncodedDataListHook' */
 
@@ -270,7 +271,7 @@ public:
 
     /* BEGIN: chext_test public for 'amba/axi4' */
     chext_test::amba::axi4::lite::Slave<20,32> s_axil_management;
-    chext_test::amba::axi4::full::Master<4,32,256,4,4,0,0,0,false> m_axi;
+    chext_test::amba::axi4::full::Master<4,32,256,true,true,true,true,false,false,true,false,4,4,0,0,0> m_axi;
     /* END: chext_test public for 'amba/axi4' */
 
     /* BEGIN: chext_test public for 'elastic' */
