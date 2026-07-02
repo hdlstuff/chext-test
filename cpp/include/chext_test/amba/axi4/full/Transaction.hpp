@@ -212,7 +212,7 @@ inline void simpleWrite(
     int size = -1,
     bool log = false
 ) {
-    auto const& cfg = target.config();
+    auto const& cfg = target.config;
     unsigned maxSize = log2(cfg.wData / 8u);
     size = (size >= 0 && size <= maxSize) ? size : maxSize;
 
@@ -234,13 +234,12 @@ inline void simpleWrite(
     sc_core::sc_join j;
 
     SC_SPAWN_TO(j) {
-        Packets::WriteAddress aw {
-            .id = util::bv_from(0, cfg.wId),
-            .addr = util::bv_from(addr, cfg.wAddr),
-            .len = (uint8_t)len,
-            .size = (uint8_t)size,
-            .burst = 1
-        };
+        Packets::WriteAddress aw { cfg };
+        aw.id = util::bv_from(0, cfg.wId);
+        aw.addr = util::bv_from(addr, cfg.wAddr);
+        aw.len = (uint8_t)len;
+        aw.size = (uint8_t)size;
+        aw.burst = 1;
 
         target.sendAW(aw);
         if (log)
@@ -249,7 +248,7 @@ inline void simpleWrite(
 
     SC_SPAWN_TO(j) {
         sc_dt::sc_bv_base bvData((int)cfg.wData);
-        sc_dt::sc_bv_base bvStrb((int)cfg.wStrb);
+        sc_dt::sc_bv_base bvStrb((int)cfg.wStrobe);
 
         Beat b;
 
@@ -258,11 +257,10 @@ inline void simpleWrite(
             detail::prepareWriteData(bvData, data, b.lowerByteIndex, b.lowerByteIndex + transferSize - 1);
             detail::prepareWriteStrobe(bvStrb, b.lowerByteIndex, b.lowerByteIndex + transferSize - 1);
 
-            Packets::WriteData w {
-                .data = bvData,
-                .strb = bvStrb,
-                .last = b.last
-            };
+            Packets::WriteData w { cfg };
+            w.data = bvData;
+            w.strb = bvStrb;
+            w.last = b.last;
 
             target.sendW(w);
             if (log)
@@ -306,7 +304,7 @@ inline void simpleRead(
     int size = -1,
     bool log = false
 ) {
-    auto const& cfg = target.config();
+    auto const& cfg = target.config;
     unsigned maxSize = log2(cfg.wData / 8u);
     size = (size >= 0 && size <= maxSize) ? size : maxSize;
 
@@ -329,13 +327,12 @@ inline void simpleRead(
     sc_core::sc_join j;
 
     SC_SPAWN_TO(j) {
-        Packets::ReadAddress ar {
-            .id = util::bv_from(0, cfg.wId),
-            .addr = util::bv_from(addr, cfg.wAddr),
-            .len = (uint8_t)len,
-            .size = (uint8_t)size,
-            .burst = 1
-        };
+        Packets::ReadAddress ar { cfg };
+        ar.id = util::bv_from(0, cfg.wId);
+        ar.addr = util::bv_from(addr, cfg.wAddr);
+        ar.len = (uint8_t)len;
+        ar.size = (uint8_t)size;
+        ar.burst = 1;
 
         target.sendAR(ar);
         if (log)
@@ -414,12 +411,10 @@ struct BasicMemoryHandler : MemoryHandler {
         uint8_t buffer[128] = { 0 };
         uint64_t addr = beat.addr - base_;
 
-        Packets::ReadData result {
-            ar.id,
-            sc_dt::sc_bv_base((int)cfg.wData),
-            0,
-            beat.last
-        };
+        Packets::ReadData result { cfg };
+        result.id = ar.id;
+        result.resp = 0;
+        result.last = beat.last;
 
         for (uint8_t i = beat.lowerByteIndex; i <= beat.upperByteIndex; ++i) {
             buffer[i] = data_[addr++];
@@ -577,12 +572,12 @@ struct Memory : sc_core::sc_module {
                             auto ar = arFifos_[i]->read();
                             sc_core::wait(latencyRead_);
 
-                            Transaction transaction { (uint16_t)master.config().wData, master.config().axi3Compat };
+                            Transaction transaction { (uint16_t)master.config.wData, master.config.axi3Compat };
                             transaction.reset(ar->addr.to_uint64(), ar->len, ar->size, ar->burst);
 
                             Beat beat;
                             while (transaction.nextBeat(beat)) {
-                                rFifos_[i]->write(new Packets::ReadData { handler_->read(master.config(), *ar, beat) });
+                                rFifos_[i]->write(new Packets::ReadData { handler_->read(master.config, *ar, beat) });
                             }
 
                             delete ar;
@@ -677,7 +672,7 @@ struct Memory : sc_core::sc_module {
                             if (!waitAfterLastW_)
                                 sc_core::wait(latencyWrite_);
 
-                            Transaction transaction { (uint16_t)master.config().wData, master.config().axi3Compat };
+                            Transaction transaction { (uint16_t)master.config.wData, master.config.axi3Compat };
                             transaction.reset(aw->addr.to_uint64(), aw->len, aw->size, aw->burst);
 
                             Beat beat;
@@ -685,14 +680,16 @@ struct Memory : sc_core::sc_module {
                             uint8_t resp;
                             while (transaction.nextBeat(beat)) {
                                 auto w = wFifos_[i]->read();
-                                handler_->write(master.config(), *aw, beat, *w, resp);
+                                handler_->write(master.config, *aw, beat, *w, resp);
                                 delete w;
                             }
 
                             if (waitAfterLastW_)
                                 sc_core::wait(latencyWrite_);
 
-                            auto b = new Packets::WriteResponse { aw->id, resp };
+                            auto b = new Packets::WriteResponse { master.makeB() };
+                            b->id = aw->id;
+                            b->resp = resp;
                             bFifos_[i]->write(b);
 
                             delete aw;

@@ -13,6 +13,7 @@
 #include <systemc>
 
 #include <fmt/core.h>
+#include <type_traits>
 
 namespace chext_test::elastic {
 
@@ -161,9 +162,12 @@ struct Sink : SinkBase {
         , valid { fmt::format("{}_valid", name).c_str() } {
     }
 
-#define CHEXT_TEST_IMPL_RECEIVEAS_FOR(param1, param2)             \
-    param2 receiveAs##param1() override {                         \
-        return Converter<BitsValueT, param2>::convert(receive()); \
+#define CHEXT_TEST_IMPL_RECEIVEAS_FOR(param1, param2)                              \
+    param2 receiveAs##param1() override {                                          \
+        if constexpr (std::is_default_constructible_v<BitsValueT>)                 \
+            return Converter<BitsValueT, param2>::convert(receive());              \
+        else                                                                       \
+            throw util::Exception("receiveAs" #param1 " is unsupported for this channel value type."); \
     }
 
     CHEXT_TEST_IMPL_RECEIVEAS_FOR(Int32, std::int32_t)

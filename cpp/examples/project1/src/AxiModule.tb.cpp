@@ -151,7 +151,7 @@ private:
         sc_join j;
 
         SC_SPAWN_TO(j) {
-            axi4::full::Packets::WriteAddress aw;
+            auto aw = dut.s_axi.makeAW();
             aw.id = 85;
             aw.addr = 0x0000;
             aw.burst = 1;
@@ -163,7 +163,7 @@ private:
 
         SC_SPAWN_TO(j) {
             for (int i = 0; i < 4; ++i) {
-                axi4::full::Packets::WriteData w;
+                auto w = dut.s_axi.makeW();
                 w.data = 0x1000 * i + i;
                 w.strb = 0xFF;
                 w.last = i == 3;
@@ -179,7 +179,7 @@ private:
         j.wait();
 
         SC_SPAWN_TO(j) {
-            axi4::full::Packets::ReadAddress ar;
+            auto ar = dut.s_axi.makeAR();
             ar.id = 12;
             ar.addr = 0x0000;
             ar.burst = 1;
@@ -199,7 +199,7 @@ private:
         };
 
         SC_SPAWN_TO(j) {
-            axi4::lite::Packets::ReadAddress ar;
+            auto ar = dut.s_axi_lite.makeAR();
             ar.addr = 0x0AA0;
 
             dut.s_axi_lite.sendAR(ar);

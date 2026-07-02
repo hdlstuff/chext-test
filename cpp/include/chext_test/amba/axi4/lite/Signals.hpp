@@ -2,6 +2,7 @@
 #define CHEXT_TEST_AMBA_AXI4_LITE_SIGNALS_HPP_INCLUDED
 
 #include <chext_test/amba/axi4/lite/Packets.hpp>
+#include <chext_test/util/Exception.hpp>
 #include <fmt/core.h>
 #include <systemc>
 
@@ -12,12 +13,36 @@ namespace detail {
 using namespace sc_core;
 using namespace sc_dt;
 
+inline void validateWidth(char const* field, int actual, unsigned expected) {
+    if (actual != (int)expected) {
+        throw util::Exception(fmt::format(
+            "AXI4-Lite packet field '{}' has width {}, expected {}",
+            field,
+            actual,
+            expected
+        ));
+    }
+}
+
 template<unsigned ADDR_WIDTH, unsigned DATA_WIDTH>
 struct Signals {
+    static constexpr Config config {
+        ConfigSpec {
+            .wAddr = ADDR_WIDTH,
+            .wData = DATA_WIDTH,
+            .lite = true,
+            .hasLock = false,
+            .hasCache = false,
+            .hasQos = false,
+            .hasRegion = false,
+        }
+    };
+
     static constexpr unsigned wAddr = ADDR_WIDTH;
     static constexpr unsigned wData = DATA_WIDTH;
 
-    static constexpr unsigned wStrb = wData >> 3;
+    static constexpr unsigned wStrobe = config.wStrobe;
+    static constexpr unsigned wStrb = wStrobe;
 
     static_assert(DATA_WIDTH == 32 || DATA_WIDTH == 64);
 
@@ -32,17 +57,14 @@ struct Signals {
             , prot(fmt::format("{}_prot", name).c_str()) {}
 
         void writeFrom(value_type const& packet) {
+            validateWidth("ar.addr", packet.addr.length(), wAddr);
             addr.write(packet.addr);
             prot.write(packet.prot);
         }
 
         void readTo(value_type& packet) const {
-            packet.~value_type();
-
-            new (&packet) value_type {
-                .addr = addr.read(),
-                .prot = prot.read().to_uint()
-            };
+            packet.addr = addr.read();
+            packet.prot = prot.read().to_uint();
         }
     };
 
@@ -57,17 +79,14 @@ struct Signals {
             , resp(fmt::format("{}_resp", name).c_str()) {}
 
         void writeFrom(value_type const& packet) {
+            validateWidth("r.data", packet.data.length(), wData);
             data.write(packet.data);
             resp.write(packet.resp);
         }
 
         void readTo(value_type& packet) const {
-            packet.~value_type();
-
-            new (&packet) value_type {
-                .data = data.read(),
-                .resp = resp.read().to_uint()
-            };
+            packet.data = data.read();
+            packet.resp = resp.read().to_uint();
         }
     };
 
@@ -82,17 +101,14 @@ struct Signals {
             , prot(fmt::format("{}_prot", name).c_str()) {}
 
         void writeFrom(value_type const& packet) {
+            validateWidth("aw.addr", packet.addr.length(), wAddr);
             addr.write(packet.addr);
             prot.write(packet.prot);
         }
 
         void readTo(value_type& packet) const {
-            packet.~value_type();
-
-            new (&packet) value_type {
-                .addr = addr.read(),
-                .prot = prot.read().to_uint()
-            };
+            packet.addr = addr.read();
+            packet.prot = prot.read().to_uint();
         }
     };
 
@@ -107,17 +123,15 @@ struct Signals {
             , strb(fmt::format("{}_strb", name).c_str()) {}
 
         void writeFrom(value_type const& packet) {
+            validateWidth("w.data", packet.data.length(), wData);
+            validateWidth("w.strb", packet.strb.length(), wStrobe);
             data.write(packet.data);
             strb.write(packet.strb);
         }
 
         void readTo(value_type& packet) const {
-            packet.~value_type();
-
-            new (&packet) value_type {
-                .data = data.read(),
-                .strb = strb.read()
-            };
+            packet.data = data.read();
+            packet.strb = strb.read();
         }
     };
 
@@ -134,11 +148,7 @@ struct Signals {
         }
 
         void readTo(value_type& packet) const {
-            packet.~value_type();
-
-            new (&packet) value_type {
-                .resp = resp.read().to_uint()
-            };
+            packet.resp = resp.read().to_uint();
         }
     };
 };

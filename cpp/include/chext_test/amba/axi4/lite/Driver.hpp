@@ -6,6 +6,7 @@
 
 #include <fmt/core.h>
 
+#include <cassert>
 #include <systemc>
 
 namespace chext_test::amba::axi4::lite {
@@ -17,22 +18,14 @@ using elastic::Source;
 
 using namespace sc_core;
 
-struct Config {
-    unsigned wAddr;
-    unsigned wData;
-
-    unsigned wStrb = wData >> 3;
-
-    JQR_DECL(
-        Config,
-        JQR_MEMBER(wAddr),
-        JQR_MEMBER(wData),
-        JQR_MEMBER(wStrb)
-    )
-};
-
 struct MasterBase {
     using PacketsT = Packets;
+
+    explicit MasterBase(Config config)
+        : config { config } {
+        assert(config.lite);
+        assert(config.wId == 0);
+    }
 
     virtual PacketsT::ReadAddress receiveAR() = 0;
     virtual void sendR(PacketsT::ReadData const& x) = 0;
@@ -40,9 +33,15 @@ struct MasterBase {
     virtual PacketsT::WriteData receiveW() = 0;
     virtual void sendB(PacketsT::WriteResponse const& x) = 0;
 
-    virtual Config const& config() const noexcept = 0;
+    PacketsT::ReadAddress makeAR() const { return PacketsT::ReadAddress { config }; }
+    PacketsT::ReadData makeR() const { return PacketsT::ReadData { config }; }
+    PacketsT::WriteAddress makeAW() const { return PacketsT::WriteAddress { config }; }
+    PacketsT::WriteData makeW() const { return PacketsT::WriteData { config }; }
+    PacketsT::WriteResponse makeB() const { return PacketsT::WriteResponse { config }; }
 
     virtual ~MasterBase() = default;
+
+    const Config config;
 };
 
 template<unsigned ADDR_WIDTH, unsigned DATA_WIDTH>
@@ -50,7 +49,8 @@ struct Master : MasterBase {
     using SignalsT = Signals<ADDR_WIDTH, DATA_WIDTH>;
 
     Master(const char* name, sc_in_clk const& clock, sc_in<bool> const& reset)
-        : ar { fmt::format("{}_ar", name).c_str(), clock, reset }
+        : MasterBase { SignalsT::config }
+        , ar { fmt::format("{}_ar", name).c_str(), clock, reset }
         , r { fmt::format("{}_r", name).c_str(), clock, reset }
         , aw { fmt::format("{}_aw", name).c_str(), clock, reset }
         , w { fmt::format("{}_w", name).c_str(), clock, reset }
@@ -65,7 +65,9 @@ struct Master : MasterBase {
     Source<typename SignalsT::WriteResponse> b;
 
     PacketsT::ReadAddress receiveAR() override {
-        return ar.receive();
+        auto packet = this->makeAR();
+        ar.receiveTo(packet);
+        return packet;
     }
 
     void sendR(PacketsT::ReadData const& x) override {
@@ -73,32 +75,32 @@ struct Master : MasterBase {
     }
 
     PacketsT::WriteAddress receiveAW() override {
-        return aw.receive();
+        auto packet = this->makeAW();
+        aw.receiveTo(packet);
+        return packet;
     }
 
     PacketsT::WriteData receiveW() override {
-        return w.receive();
+        auto packet = this->makeW();
+        w.receiveTo(packet);
+        return packet;
     }
 
     void sendB(PacketsT::WriteResponse const& x) override {
         b.send(x);
     }
 
-    virtual Config const& config() const noexcept {
-        return config_;
-    }
-
     virtual ~Master() = default;
-
-private:
-    Config config_ {
-        .wAddr = ADDR_WIDTH,
-        .wData = DATA_WIDTH
-    };
 };
 
 struct SlaveBase {
     using PacketsT = Packets;
+
+    explicit SlaveBase(Config config)
+        : config { config } {
+        assert(config.lite);
+        assert(config.wId == 0);
+    }
 
     virtual void sendAR(PacketsT::ReadAddress const& x) = 0;
     virtual PacketsT::ReadData receiveR() = 0;
@@ -106,9 +108,15 @@ struct SlaveBase {
     virtual void sendW(PacketsT::WriteData const& x) = 0;
     virtual PacketsT::WriteResponse receiveB() = 0;
 
-    virtual Config const& config() const noexcept = 0;
+    PacketsT::ReadAddress makeAR() const { return PacketsT::ReadAddress { config }; }
+    PacketsT::ReadData makeR() const { return PacketsT::ReadData { config }; }
+    PacketsT::WriteAddress makeAW() const { return PacketsT::WriteAddress { config }; }
+    PacketsT::WriteData makeW() const { return PacketsT::WriteData { config }; }
+    PacketsT::WriteResponse makeB() const { return PacketsT::WriteResponse { config }; }
 
     virtual ~SlaveBase() = default;
+
+    const Config config;
 };
 
 template<unsigned ADDR_WIDTH, unsigned DATA_WIDTH>
@@ -116,7 +124,8 @@ struct Slave : SlaveBase {
     using SignalsT = Signals<ADDR_WIDTH, DATA_WIDTH>;
 
     Slave(const char* name, sc_in_clk const& clock, sc_in<bool> const& reset)
-        : ar { fmt::format("{}_ar", name).c_str(), clock, reset }
+        : SlaveBase { SignalsT::config }
+        , ar { fmt::format("{}_ar", name).c_str(), clock, reset }
         , r { fmt::format("{}_r", name).c_str(), clock, reset }
         , aw { fmt::format("{}_aw", name).c_str(), clock, reset }
         , w { fmt::format("{}_w", name).c_str(), clock, reset }
@@ -135,7 +144,9 @@ struct Slave : SlaveBase {
     }
 
     PacketsT::ReadData receiveR() override {
-        return r.receive();
+        auto packet = this->makeR();
+        r.receiveTo(packet);
+        return packet;
     }
 
     void sendAW(PacketsT::WriteAddress const& x) override {
@@ -147,25 +158,18 @@ struct Slave : SlaveBase {
     }
 
     PacketsT::WriteResponse receiveB() override {
-        return b.receive();
-    }
-
-    virtual Config const& config() const noexcept {
-        return config_;
+        auto packet = this->makeB();
+        b.receiveTo(packet);
+        return packet;
     }
 
     virtual ~Slave() = default;
-
-private:
-    Config config_ {
-        .wAddr = ADDR_WIDTH,
-        .wData = DATA_WIDTH
-    };
 };
 
 } // namespace detail
 
-using detail::Config;
+using axi4::Config;
+using axi4::ConfigSpec;
 
 using detail::Master;
 using detail::MasterBase;

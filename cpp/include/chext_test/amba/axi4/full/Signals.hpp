@@ -2,8 +2,11 @@
 #define CHEXT_TEST_AMBA_AXI4_FULL_SIGNALS_HPP_INCLUDED
 
 #include <chext_test/amba/axi4/full/Packets.hpp>
+#include <chext_test/util/Exception.hpp>
 #include <fmt/core.h>
 #include <systemc>
+#include <cstdint>
+#include <type_traits>
 
 namespace chext_test::amba::axi4::full {
 
@@ -12,31 +15,66 @@ namespace detail {
 using namespace sc_core;
 using namespace sc_dt;
 
-template<unsigned WIDTH>
-struct bv_bool_helper {
-    using type = sc_bv<WIDTH>;
+#ifndef CHEXT_TEST_VERILATOR_PINS_BV_VALUE
+#define CHEXT_TEST_VERILATOR_PINS_BV_VALUE 65
+#endif
 
-    template<sc_writer_policy WP>
-    static auto peek(sc_signal<type, WP> const& lock) {
-        return lock.read().to_uint();
-    }
+template<unsigned WIDTH>
+struct verilator_port_type {
+    using type = sc_bv<WIDTH>;
 };
 
 template<>
-struct bv_bool_helper<1> {
+struct verilator_port_type<1> {
     using type = bool;
+};
+
+template<unsigned WIDTH>
+    requires(WIDTH >= 2 && WIDTH <= 32 && WIDTH < CHEXT_TEST_VERILATOR_PINS_BV_VALUE)
+struct verilator_port_type<WIDTH> {
+    using type = std::uint32_t;
+};
+
+template<unsigned WIDTH>
+    requires(WIDTH >= 33 && WIDTH <= 64 && WIDTH < CHEXT_TEST_VERILATOR_PINS_BV_VALUE)
+struct verilator_port_type<WIDTH> {
+    using type = std::uint64_t;
+};
+
+template<unsigned WIDTH>
+using verilator_port_t = typename verilator_port_type<WIDTH>::type;
+
+template<unsigned WIDTH>
+struct verilator_port_helper {
+    using type = verilator_port_t<WIDTH>;
 
     template<sc_writer_policy WP>
-    static auto peek(sc_signal<type, WP> const& lock) {
-        return lock.read();
+    static auto peek(sc_signal<type, WP> const& signal) {
+        if constexpr (std::is_same_v<type, bool>)
+            return signal.read();
+        else if constexpr (std::is_integral_v<type>)
+            return signal.read();
+        else
+            return signal.read().to_uint();
     }
 };
 
 template<unsigned WIDTH>
-using bv_bool_t = typename bv_bool_helper<WIDTH>::type;
+using verilator_port_signal_t = typename verilator_port_helper<WIDTH>::type;
 
 constexpr unsigned notZeroOr(unsigned x, unsigned y) {
     return x > 0 ? x : y;
+}
+
+inline void validateWidth(char const* field, int actual, unsigned expected) {
+    if (actual != (int)expected) {
+        throw util::Exception(fmt::format(
+            "AXI4 packet field '{}' has width {}, expected {}",
+            field,
+            actual,
+            expected
+        ));
+    }
 }
 
 template<
@@ -50,6 +88,20 @@ template<
     unsigned BUSER_WIDTH = 0,
     bool AXI3_COMPAT = false>
 struct Signals {
+    static constexpr Config config {
+        ConfigSpec {
+            .wId = ID_WIDTH,
+            .wAddr = ADDR_WIDTH,
+            .wData = DATA_WIDTH,
+            .axi3Compat = AXI3_COMPAT,
+            .wUserAR = ARUSER_WIDTH,
+            .wUserR = RUSER_WIDTH,
+            .wUserAW = AWUSER_WIDTH,
+            .wUserW = WUSER_WIDTH,
+            .wUserB = BUSER_WIDTH,
+        }
+    };
+
     static constexpr unsigned wId = ID_WIDTH;
     static constexpr unsigned wAddr = ADDR_WIDTH;
     static constexpr unsigned wData = DATA_WIDTH;
@@ -60,10 +112,11 @@ struct Signals {
     static constexpr unsigned wUserB = BUSER_WIDTH;
 
     static constexpr bool axi3Compat = AXI3_COMPAT;
-    static constexpr unsigned wLen = axi3Compat ? 4 : 8;
-    static constexpr unsigned wLock = axi3Compat ? 2 : 1;
+    static constexpr unsigned wLen = config.wLen;
+    static constexpr unsigned wLock = config.wLock;
 
-    static constexpr unsigned wStrb = wData >> 3;
+    static constexpr unsigned wStrobe = config.wStrobe;
+    static constexpr unsigned wStrb = wStrobe;
 
     struct ReadAddress {
         using value_type = Packets::ReadAddress;
@@ -73,7 +126,7 @@ struct Signals {
         sc_signal<sc_bv<wLen>, SC_MANY_WRITERS> len;
         sc_signal<sc_bv<3>, SC_MANY_WRITERS> size;
         sc_signal<sc_bv<2>, SC_MANY_WRITERS> burst;
-        sc_signal<bv_bool_t<wLock>, SC_MANY_WRITERS> lock;
+        sc_signal<verilator_port_signal_t<wLock>, SC_MANY_WRITERS> lock;
         sc_signal<sc_bv<4>, SC_MANY_WRITERS> cache;
         sc_signal<sc_bv<3>, SC_MANY_WRITERS> prot;
         sc_signal<sc_bv<4>, SC_MANY_WRITERS> qos;
@@ -94,6 +147,9 @@ struct Signals {
             , user(fmt::format("{}_user", name).c_str()) {}
 
         void writeFrom(value_type const& packet) {
+            validateWidth("ar.id", packet.id.length(), notZeroOr(wId, 32));
+            validateWidth("ar.addr", packet.addr.length(), wAddr);
+            validateWidth("ar.user", packet.user.length(), notZeroOr(wUserAR, 32));
             id.write(packet.id);
             addr.write(packet.addr);
             len.write(packet.len);
@@ -108,21 +164,17 @@ struct Signals {
         }
 
         void readTo(value_type& packet) const {
-            packet.~value_type();
-
-            new (&packet) value_type {
-                .id = id.read(),
-                .addr = addr.read(),
-                .len = len.read().to_uint(),
-                .size = size.read().to_uint(),
-                .burst = burst.read().to_uint(),
-                .lock = bv_bool_helper<wLock>::peek(lock),
-                .cache = cache.read().to_uint(),
-                .prot = prot.read().to_uint(),
-                .qos = qos.read().to_uint(),
-                .region = region.read().to_uint(),
-                .user = user.read()
-            };
+            packet.id = id.read();
+            packet.addr = addr.read();
+            packet.len = len.read().to_uint();
+            packet.size = size.read().to_uint();
+            packet.burst = burst.read().to_uint();
+            packet.lock = verilator_port_helper<wLock>::peek(lock);
+            packet.cache = cache.read().to_uint();
+            packet.prot = prot.read().to_uint();
+            packet.qos = qos.read().to_uint();
+            packet.region = region.read().to_uint();
+            packet.user = user.read();
         }
     };
 
@@ -143,6 +195,9 @@ struct Signals {
             , user(fmt::format("{}_user", name).c_str()) {}
 
         void writeFrom(value_type const& packet) {
+            validateWidth("r.id", packet.id.length(), notZeroOr(wId, 32));
+            validateWidth("r.data", packet.data.length(), wData);
+            validateWidth("r.user", packet.user.length(), notZeroOr(wUserR, 32));
             id.write(packet.id);
             data.write(packet.data);
             resp.write(packet.resp);
@@ -151,15 +206,11 @@ struct Signals {
         }
 
         void readTo(value_type& packet) const {
-            packet.~value_type();
-
-            new (&packet) value_type {
-                .id = id.read(),
-                .data = data.read(),
-                .resp = resp.read().to_uint(),
-                .last = last.read(),
-                .user = user.read()
-            };
+            packet.id = id.read();
+            packet.data = data.read();
+            packet.resp = resp.read().to_uint();
+            packet.last = last.read();
+            packet.user = user.read();
         }
     };
 
@@ -171,7 +222,7 @@ struct Signals {
         sc_signal<sc_bv<wLen>, SC_MANY_WRITERS> len;
         sc_signal<sc_bv<3>, SC_MANY_WRITERS> size;
         sc_signal<sc_bv<2>, SC_MANY_WRITERS> burst;
-        sc_signal<bv_bool_t<wLock>, SC_MANY_WRITERS> lock;
+        sc_signal<verilator_port_signal_t<wLock>, SC_MANY_WRITERS> lock;
         sc_signal<sc_bv<4>, SC_MANY_WRITERS> cache;
         sc_signal<sc_bv<3>, SC_MANY_WRITERS> prot;
         sc_signal<sc_bv<4>, SC_MANY_WRITERS> qos;
@@ -192,6 +243,9 @@ struct Signals {
             , user(fmt::format("{}_user", name).c_str()) {}
 
         void writeFrom(value_type const& packet) {
+            validateWidth("aw.id", packet.id.length(), notZeroOr(wId, 32));
+            validateWidth("aw.addr", packet.addr.length(), wAddr);
+            validateWidth("aw.user", packet.user.length(), notZeroOr(wUserAW, 32));
             id.write(packet.id);
             addr.write(packet.addr);
             len.write(packet.len);
@@ -206,21 +260,17 @@ struct Signals {
         }
 
         void readTo(value_type& packet) const {
-            packet.~value_type();
-
-            new (&packet) value_type {
-                .id = id.read(),
-                .addr = addr.read(),
-                .len = len.read().to_uint(),
-                .size = size.read().to_uint(),
-                .burst = burst.read().to_uint(),
-                .lock = bv_bool_helper<wLock>::peek(lock),
-                .cache = cache.read().to_uint(),
-                .prot = prot.read().to_uint(),
-                .qos = qos.read().to_uint(),
-                .region = region.read().to_uint(),
-                .user = user.read()
-            };
+            packet.id = id.read();
+            packet.addr = addr.read();
+            packet.len = len.read().to_uint();
+            packet.size = size.read().to_uint();
+            packet.burst = burst.read().to_uint();
+            packet.lock = verilator_port_helper<wLock>::peek(lock);
+            packet.cache = cache.read().to_uint();
+            packet.prot = prot.read().to_uint();
+            packet.qos = qos.read().to_uint();
+            packet.region = region.read().to_uint();
+            packet.user = user.read();
         }
     };
 
@@ -239,6 +289,9 @@ struct Signals {
             , user(fmt::format("{}_user", name).c_str()) {}
 
         void writeFrom(value_type const& packet) {
+            validateWidth("w.data", packet.data.length(), wData);
+            validateWidth("w.strb", packet.strb.length(), wStrobe);
+            validateWidth("w.user", packet.user.length(), notZeroOr(wUserW, 32));
             data.write(packet.data);
             strb.write(packet.strb);
             last.write(packet.last);
@@ -246,14 +299,10 @@ struct Signals {
         }
 
         void readTo(value_type& packet) const {
-            packet.~value_type();
-
-            new (&packet) value_type {
-                .data = data.read(),
-                .strb = strb.read(),
-                .last = last.read(),
-                .user = user.read()
-            };
+            packet.data = data.read();
+            packet.strb = strb.read();
+            packet.last = last.read();
+            packet.user = user.read();
         }
     };
 
@@ -270,19 +319,17 @@ struct Signals {
             , user(fmt::format("{}_user", name).c_str()) {}
 
         void writeFrom(value_type const& packet) {
+            validateWidth("b.id", packet.id.length(), notZeroOr(wId, 32));
+            validateWidth("b.user", packet.user.length(), notZeroOr(wUserB, 32));
             id.write(packet.id);
             resp.write(packet.resp);
             user.write(packet.user);
         }
 
         void readTo(value_type& packet) const {
-            packet.~value_type();
-
-            new (&packet) value_type {
-                .id = id.read(),
-                .resp = resp.read().to_uint(),
-                .user = user.read()
-            };
+            packet.id = id.read();
+            packet.resp = resp.read().to_uint();
+            packet.user = user.read();
         }
     };
 };

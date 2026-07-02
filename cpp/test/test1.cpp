@@ -35,7 +35,9 @@ protected:
 
         EXPECT_LT(x, y);
 
-        chext_test::amba::axi4::full::Packets::Address ar1, ar2;
+        chext_test::amba::axi4::full::Config axiCfg { 4, 20, 32 };
+        chext_test::amba::axi4::full::Packets::ReadAddress ar1 { axiCfg };
+        chext_test::amba::axi4::full::Packets::ReadAddress ar2 { axiCfg };
         ar1.addr = sc_bv<20>(0x10000);
         ar2.addr = sc_bv<20>(0x20000);
 
@@ -81,66 +83,62 @@ protected:
 
         fmt::print("{}\n", sc_time_stamp().to_string());
 
-        chext_test::amba::axi4::lite::Packets::Address arLite1 {
-            .addr = sc_bv<12>(0x800)
+        chext_test::amba::axi4::lite::Config axiLiteCfg {
+            chext_test::amba::axi4::lite::ConfigSpec {
+                .wAddr = 12,
+                .wData = 32,
+                .lite = true,
+            }
         };
 
-        chext_test::amba::axi4::lite::Packets::Address arLite2 {
-            .addr = sc_bv<12>(0xA00)
-        };
+        chext_test::amba::axi4::lite::Packets::ReadAddress arLite1 { axiLiteCfg };
+        arLite1.addr = sc_bv<12>(0x800);
 
-        chext_test::amba::axi4::lite::Packets::Address arLite3 {
-            .addr = sc_bv<12>(0x800)
-        };
+        chext_test::amba::axi4::lite::Packets::ReadAddress arLite2 { axiLiteCfg };
+        arLite2.addr = sc_bv<12>(0xA00);
+
+        chext_test::amba::axi4::lite::Packets::ReadAddress arLite3 { axiLiteCfg };
+        arLite3.addr = sc_bv<12>(0x800);
 
         fmt::print("arLite1 = {}, arLite2 = {}\n", arLite1, arLite2);
         fmt::print("arLite1 == arLite2 = {}\n", arLite1 == arLite2);
         fmt::print("arLite1 == arLite3 = {}\n", arLite1 == arLite3);
 
-        chext_test::amba::axi4::full::Packets::ReadData readData {
-            .id = sc_bv<4>(0xA),
-            .data = sc_bv<32>(0xDEAD'BEEF),
-            .resp = 3,
-            .last = true,
-            .user = sc_bv<8>(0xAB)
-        };
+        chext_test::amba::axi4::full::Packets::ReadData readData { axiCfg };
+        readData.id = sc_bv<4>(0xA);
+        readData.data = sc_bv<32>(0xDEAD'BEEF);
+        readData.resp = 3;
+        readData.last = true;
 
         fmt::print("readData = {}\n", readData);
 
-        chext_test::amba::axi4::full::Packets::WriteData writeData {
-            .data = sc_bv<32>(0xDEAD'BEEF),
-            .strb = sc_bv<4>(0b1000),
-            .last = true,
-            .user = sc_bv<8>(0xAB)
-        };
+        chext_test::amba::axi4::full::Packets::WriteData writeData { axiCfg };
+        writeData.data = sc_bv<32>(0xDEAD'BEEF);
+        writeData.strb = sc_bv<4>(0b1000);
+        writeData.last = true;
 
         fmt::print("writeData = {}\n", writeData);
 
-        chext_test::amba::axi4::full::Packets::WriteResponse writeResponse {
-            .id = sc_bv<4>(0xA),
-            .resp = 2,
-            .user = sc_bv<8>(0xAB)
-        };
+        chext_test::amba::axi4::full::Packets::WriteResponse writeResponse { axiCfg };
+        writeResponse.id = sc_bv<4>(0xA);
+        writeResponse.resp = 2;
 
         fmt::print("writeResponse = {}\n", writeResponse);
 
-        chext_test::amba::axi4::lite::Packets::ReadData readDataLite {
-            .data = sc_bv<32>(0xDEAD'BEEF),
-            .resp = 3
-        };
+        chext_test::amba::axi4::lite::Packets::ReadData readDataLite { axiLiteCfg };
+        readDataLite.data = sc_bv<32>(0xDEAD'BEEF);
+        readDataLite.resp = 3;
 
         fmt::print("readDataLite = {}\n", readDataLite);
 
-        chext_test::amba::axi4::lite::Packets::WriteData writeDataLite {
-            .data = sc_bv<32>(0xDEAD'BEEF),
-            .strb = sc_bv<4>(0b1000)
-        };
+        chext_test::amba::axi4::lite::Packets::WriteData writeDataLite { axiLiteCfg };
+        writeDataLite.data = sc_bv<32>(0xDEAD'BEEF);
+        writeDataLite.strb = sc_bv<4>(0b1000);
 
         fmt::print("writeDataLite = {}\n", writeDataLite);
 
-        chext_test::amba::axi4::lite::Packets::WriteResponse writeResponseLite {
-            .resp = 2
-        };
+        chext_test::amba::axi4::lite::Packets::WriteResponse writeResponseLite { axiLiteCfg };
+        writeResponseLite.resp = 2;
 
         fmt::print("writeResponseLite = {}\n", writeResponseLite);
 

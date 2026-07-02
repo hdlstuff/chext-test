@@ -31,6 +31,12 @@ target_link_libraries(
     hdlstuff::hdlstuff_hal
 )
 
+target_compile_definitions(
+    chext_test
+    PUBLIC
+    CHEXT_TEST_VERILATOR_PINS_BV_VALUE=2
+)
+
 add_executable(test1 test/test1.cpp)
 target_link_libraries(test1 PUBLIC chext_test)
 add_compile_definitions(test1 PUBLIC SC_DISABLE_API_VERSION_CHECK)

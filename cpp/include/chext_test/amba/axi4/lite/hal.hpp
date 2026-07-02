@@ -23,7 +23,7 @@ inline std::shared_ptr<hal::Memory> wrapSlave(SlaveBase& slave) {
     struct Memory : hal::Memory {
         explicit Memory(axi4::lite::SlaveBase& slave)
             : slave_(slave)
-            , cfg_ { slave.config() } {
+            , cfg_ { slave.config } {
 
             assert(cfg_.wData == 32 || cfg_.wData == 64);
         }
@@ -96,7 +96,10 @@ inline std::shared_ptr<hal::Memory> wrapSlave(SlaveBase& slave) {
             sc_dt::sc_bv_base result;
 
             SC_SPAWN_TO(j) {
-                slave_.sendAR({ .addr = sc_dt::sc_bv<64>(addr), .prot = 0 });
+                Packets::ReadAddress ar { cfg_ };
+                ar.addr = sc_dt::sc_bv<64>(addr);
+                ar.prot = 0;
+                slave_.sendAR(ar);
             };
 
             SC_SPAWN_TO(j) {
@@ -112,11 +115,16 @@ inline std::shared_ptr<hal::Memory> wrapSlave(SlaveBase& slave) {
             sc_core::sc_join j;
 
             SC_SPAWN_TO(j) {
-                slave_.sendAW({ .addr = sc_dt::sc_bv<64>(addr) });
+                Packets::WriteAddress aw { cfg_ };
+                aw.addr = sc_dt::sc_bv<64>(addr);
+                slave_.sendAW(aw);
             };
 
             SC_SPAWN_TO(j) {
-                slave_.sendW({ .data = data, .strb = sc_dt::sc_bv<8>(strb) });
+                Packets::WriteData w { cfg_ };
+                w.data = data;
+                w.strb = sc_dt::sc_bv<8>(strb);
+                slave_.sendW(w);
             };
 
             SC_SPAWN_TO(j) {
