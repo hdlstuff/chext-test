@@ -33,28 +33,28 @@ struct Converter<From, To, std::enable_if_t<std::is_integral_v<From> && std::is_
     }
 };
 
-template<unsigned W, typename To>
+template<int W, typename To>
 struct Converter<sc_dt::sc_bv<W>, To, std::enable_if_t<std::is_integral_v<To>>> {
     static To convert(sc_dt::sc_bv<W> const& from) {
         return To(from.to_uint64());
     }
 };
 
-template<unsigned W>
+template<int W>
 struct Converter<sc_dt::sc_bv<W>, std::string, void> {
     static std::string convert(sc_dt::sc_bv<W> const& from) {
         return from.to_string();
     }
 };
 
-template<typename From, unsigned W>
+template<typename From, int W>
 struct Converter<From, sc_dt::sc_bv<W>, std::enable_if_t<std::is_integral_v<From>>> {
     static sc_dt::sc_bv<W> convert(From const& from) {
         return sc_dt::sc_bv<W>(from);
     }
 };
 
-template<unsigned W>
+template<int W>
 struct Converter<std::string, sc_dt::sc_bv<W>, void> {
     static sc_dt::sc_bv<W> convert(std::string const& from) {
         return sc_dt::sc_bv<W>(from.c_str());

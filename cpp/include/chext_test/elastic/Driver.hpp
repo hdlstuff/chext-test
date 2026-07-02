@@ -13,7 +13,10 @@
 #include <systemc>
 
 #include <fmt/core.h>
+#include <cstdint>
+#include <string>
 #include <type_traits>
+#include <utility>
 
 namespace chext_test::elastic {
 
@@ -113,6 +116,23 @@ using namespace sc_core;
  */
 
 struct SinkBase {
+    explicit SinkBase(std::string name, std::uint64_t timeoutCycles = 0)
+        : name { std::move(name) }
+        , timeoutCycles_ { timeoutCycles } {}
+
+    SinkBase(SinkBase const&) = delete;
+    SinkBase& operator=(SinkBase const&) = delete;
+    SinkBase(SinkBase&&) = delete;
+    SinkBase& operator=(SinkBase&&) = delete;
+
+    std::uint64_t timeoutCycles() const noexcept {
+        return timeoutCycles_;
+    }
+
+    void timeoutCycles(std::uint64_t cycles) noexcept {
+        timeoutCycles_ = cycles;
+    }
+
     virtual std::int32_t receiveAsInt32() = 0;
     virtual std::uint32_t receiveAsUInt32() = 0;
     virtual std::int64_t receiveAsInt64() = 0;
@@ -141,6 +161,11 @@ struct SinkBase {
     }
 
     virtual ~SinkBase() = default;
+
+    const std::string name;
+
+private:
+    std::uint64_t timeoutCycles_;
 };
 
 template<
@@ -153,13 +178,16 @@ struct Sink : SinkBase {
     Sink(
         std::string name,
         sc_in_clk const& clock,
-        sc_in<bool> const& reset
+        sc_in<bool> const& reset,
+        std::uint64_t timeoutCycles = 0
     )
-        : clock { clock }
+        : SinkBase { std::move(name), timeoutCycles }
+        , clock { clock }
         , reset { reset }
-        , bits { fmt::format("{}_bits", name).c_str() }
-        , ready { fmt::format("{}_ready", name).c_str() }
-        , valid { fmt::format("{}_valid", name).c_str() } {
+        , bits { fmt::format("{}_bits", this->name).c_str() }
+        , ready { fmt::format("{}_ready", this->name).c_str() }
+        , valid { fmt::format("{}_valid", this->name).c_str() } {
+        ready.write(false);
     }
 
 #define CHEXT_TEST_IMPL_RECEIVEAS_FOR(param1, param2)                              \
@@ -184,7 +212,9 @@ struct Sink : SinkBase {
             reset,
             ready,
             valid,
-            [&] { ReadHandler<BitsSignalT, BitsValueT>::read(bits, value); }
+            [&] { ReadHandler<BitsSignalT, BitsValueT>::read(bits, value); },
+            name,
+            timeoutCycles()
         );
     }
 
@@ -209,6 +239,23 @@ public:
 };
 
 struct SourceBase {
+    explicit SourceBase(std::string name, std::uint64_t timeoutCycles = 0)
+        : name { std::move(name) }
+        , timeoutCycles_ { timeoutCycles } {}
+
+    SourceBase(SourceBase const&) = delete;
+    SourceBase& operator=(SourceBase const&) = delete;
+    SourceBase(SourceBase&&) = delete;
+    SourceBase& operator=(SourceBase&&) = delete;
+
+    std::uint64_t timeoutCycles() const noexcept {
+        return timeoutCycles_;
+    }
+
+    void timeoutCycles(std::uint64_t cycles) noexcept {
+        timeoutCycles_ = cycles;
+    }
+
     virtual void sendAsInt32(std::int32_t const& x) = 0;
     virtual void sendAsUInt32(std::uint32_t const& x) = 0;
     virtual void sendAsInt64(std::int64_t const& x) = 0;
@@ -234,6 +281,11 @@ struct SourceBase {
     }
 
     virtual ~SourceBase() = default;
+
+    const std::string name;
+
+private:
+    std::uint64_t timeoutCycles_;
 };
 
 template<
@@ -246,13 +298,16 @@ struct Source : SourceBase {
     Source(
         std::string name,
         sc_in_clk const& clock,
-        sc_in<bool> const& reset
+        sc_in<bool> const& reset,
+        std::uint64_t timeoutCycles = 0
     )
-        : clock { clock }
+        : SourceBase { std::move(name), timeoutCycles }
+        , clock { clock }
         , reset { reset }
-        , bits { fmt::format("{}_bits", name).c_str() }
-        , ready { fmt::format("{}_ready", name).c_str() }
-        , valid { fmt::format("{}_valid", name).c_str() } {
+        , bits { fmt::format("{}_bits", this->name).c_str() }
+        , ready { fmt::format("{}_ready", this->name).c_str() }
+        , valid { fmt::format("{}_valid", this->name).c_str() } {
+        valid.write(false);
     }
 
 #define CHEXT_TEST_IMPL_SENDAS_FOR(param1, param2)       \
@@ -274,7 +329,9 @@ struct Source : SourceBase {
             reset,
             ready,
             valid,
-            [&] { WriteHandler<BitsSignalT, BitsValueT>::write(bits, value); }
+            [&] { WriteHandler<BitsSignalT, BitsValueT>::write(bits, value); },
+            name,
+            timeoutCycles()
         );
     }
 
