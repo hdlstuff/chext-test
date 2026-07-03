@@ -2,6 +2,7 @@
 #define CHEXT_TEST_ELASTIC_DATALAST_HPP_INCLUDED
 
 #include <chext_test/util/ScDump.hpp>
+#include <chext_test/vutil.hpp>
 
 #include <jqr/comp_eq.hpp>
 #include <jqr/dump.hpp>
@@ -35,25 +36,26 @@ template<unsigned W>
 struct DataLastSignals {
     using value_type = DataLast;
 
-    sc_core::sc_signal<sc_dt::sc_bv<W>> data;
-    sc_core::sc_signal<bool> last;
+    vutil::signal_t<W> data;
+    vutil::signal_t<1> last;
 
     DataLastSignals(const char* name)
         : data(fmt::format("{}_data", name).c_str())
         , last(fmt::format("{}_last", name).c_str()) {}
 
     void writeFrom(value_type const& packet) {
-        data.write(packet.data);
-        last.write(packet.last);
+        vutil::write<W>(data, packet.data);
+        vutil::write<1>(last, packet.last);
     }
 
     void readTo(value_type& packet) const {
         packet.~value_type();
 
         new (&packet) value_type {
-            .data = data.read(),
+            .data = sc_dt::sc_bv<W> {},
             .last = last.read()
         };
+        vutil::read<W>(data, packet.data);
     }
 };
 

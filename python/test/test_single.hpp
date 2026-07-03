@@ -13,6 +13,7 @@
 #include <jqr/core.hpp>
 #include <jqr/comp_eq.hpp>
 #include <jqr/dump.hpp>
+#include <chext_test/vutil.hpp>
 /* END: chext_test includes added by 'EncodedDataListHook' */
 
 #include <hdlscw/wrapper_base.hpp>
@@ -24,6 +25,7 @@
 
 /* BEGIN: chext_test includes for 'elastic' */
 #include <chext_test/elastic/Driver.hpp>
+#include <chext_test/vutil.hpp>
 #include <chext_test/elastic/DataLast.hpp>
 #include <Packet.hpp>
 /* END: chext_test includes for 'elastic' */
@@ -84,64 +86,73 @@ public:
         using value_type = MyTestBundle1_value;
 
         // f0: UInt<8>
-        sc_core::sc_signal<sc_dt::sc_bv<8>, sc_core::SC_MANY_WRITERS> f0;
+        chext_test::vutil::signal_t<8, sc_core::SC_MANY_WRITERS> f0;
 
         // f1: UInt<18>
-        sc_core::sc_signal<sc_dt::sc_bv<18>, sc_core::SC_MANY_WRITERS> f1;
+        chext_test::vutil::signal_t<18, sc_core::SC_MANY_WRITERS> f1;
 
         // f2_0: UInt<6>
-        sc_core::sc_signal<sc_dt::sc_bv<6>, sc_core::SC_MANY_WRITERS> f2_0;
+        chext_test::vutil::signal_t<6, sc_core::SC_MANY_WRITERS> f2_0;
 
         // f2_1: UInt<6>
-        sc_core::sc_signal<sc_dt::sc_bv<6>, sc_core::SC_MANY_WRITERS> f2_1;
+        chext_test::vutil::signal_t<6, sc_core::SC_MANY_WRITERS> f2_1;
 
         // f2_2: UInt<6>
-        sc_core::sc_signal<sc_dt::sc_bv<6>, sc_core::SC_MANY_WRITERS> f2_2;
+        chext_test::vutil::signal_t<6, sc_core::SC_MANY_WRITERS> f2_2;
 
         // f2_3: UInt<6>
-        sc_core::sc_signal<sc_dt::sc_bv<6>, sc_core::SC_MANY_WRITERS> f2_3;
+        chext_test::vutil::signal_t<6, sc_core::SC_MANY_WRITERS> f2_3;
 
         // f3_f0: UInt<15>
-        sc_core::sc_signal<sc_dt::sc_bv<15>, sc_core::SC_MANY_WRITERS> f3_f0;
+        chext_test::vutil::signal_t<15, sc_core::SC_MANY_WRITERS> f3_f0;
 
         // f3_f1: Bool
-        sc_core::sc_signal<bool, sc_core::SC_MANY_WRITERS> f3_f1;
+        chext_test::vutil::signal_t<1, sc_core::SC_MANY_WRITERS> f3_f1;
 
-        MyTestBundle1_signals(const char* name) :
-            f0(fmt::format("{}_f0", name).c_str()),
-            f1(fmt::format("{}_f1", name).c_str()),
-            f2_0(fmt::format("{}_f2_0", name).c_str()),
-            f2_1(fmt::format("{}_f2_1", name).c_str()),
-            f2_2(fmt::format("{}_f2_2", name).c_str()),
-            f2_3(fmt::format("{}_f2_3", name).c_str()),
-            f3_f0(fmt::format("{}_f3_f0", name).c_str()),
-            f3_f1(fmt::format("{}_f3_f1", name).c_str()) { /* empty ctor */ }
+        private:
+            template<unsigned W, typename ValueT, typename SignalT>
+            static ValueT readField(SignalT const& signal) {
+                ValueT value {};
+                chext_test::vutil::read<W>(signal, value);
+                return value;
+            }
 
-        void readTo(value_type & x) {
-            x.~value_type();
+        public:
+            MyTestBundle1_signals(const char* name) :
+                f0(fmt::format("{}_f0", name).c_str()),
+                f1(fmt::format("{}_f1", name).c_str()),
+                f2_0(fmt::format("{}_f2_0", name).c_str()),
+                f2_1(fmt::format("{}_f2_1", name).c_str()),
+                f2_2(fmt::format("{}_f2_2", name).c_str()),
+                f2_3(fmt::format("{}_f2_3", name).c_str()),
+                f3_f0(fmt::format("{}_f3_f0", name).c_str()),
+                f3_f1(fmt::format("{}_f3_f1", name).c_str()) { /* empty ctor */ }
 
-            new (&x) value_type {
-                static_cast<std::uint8_t>(f0.read().to_uint64()),
-                static_cast<std::uint32_t>(f1.read().to_uint64()),
-                static_cast<std::uint8_t>(f2_0.read().to_uint64()),
-                static_cast<std::uint8_t>(f2_1.read().to_uint64()),
-                static_cast<std::uint8_t>(f2_2.read().to_uint64()),
-                static_cast<std::uint8_t>(f2_3.read().to_uint64()),
-                static_cast<std::uint16_t>(f3_f0.read().to_uint64()),
-                f3_f1.read()
-            };
-        }
+            void readTo(value_type & x) {
+                x.~value_type();
 
-        void writeFrom(value_type const& x) {
-            f0.write(x.f0);
-            f1.write(x.f1);
-            f2_0.write(x.f2_0);
-            f2_1.write(x.f2_1);
-            f2_2.write(x.f2_2);
-            f2_3.write(x.f2_3);
-            f3_f0.write(x.f3_f0);
-            f3_f1.write(x.f3_f1);
-        }
+                new (&x) value_type {
+                    readField<8, std::uint8_t>(f0),
+                    readField<18, std::uint32_t>(f1),
+                    readField<6, std::uint8_t>(f2_0),
+                    readField<6, std::uint8_t>(f2_1),
+                    readField<6, std::uint8_t>(f2_2),
+                    readField<6, std::uint8_t>(f2_3),
+                    readField<15, std::uint16_t>(f3_f0),
+                    readField<1, bool>(f3_f1)
+                };
+            }
+
+            void writeFrom(value_type const& x) {
+                chext_test::vutil::write<8>(f0, x.f0);
+                chext_test::vutil::write<18>(f1, x.f1);
+                chext_test::vutil::write<6>(f2_0, x.f2_0);
+                chext_test::vutil::write<6>(f2_1, x.f2_1);
+                chext_test::vutil::write<6>(f2_2, x.f2_2);
+                chext_test::vutil::write<6>(f2_3, x.f2_3);
+                chext_test::vutil::write<15>(f3_f0, x.f3_f0);
+                chext_test::vutil::write<1>(f3_f1, x.f3_f1);
+            }
 
     };
 
@@ -183,52 +194,61 @@ public:
         using value_type = MyTestBundle2_value;
 
         // f0_0: UInt<6>
-        sc_core::sc_signal<sc_dt::sc_bv<6>, sc_core::SC_MANY_WRITERS> f0_0;
+        chext_test::vutil::signal_t<6, sc_core::SC_MANY_WRITERS> f0_0;
 
         // f0_1: UInt<6>
-        sc_core::sc_signal<sc_dt::sc_bv<6>, sc_core::SC_MANY_WRITERS> f0_1;
+        chext_test::vutil::signal_t<6, sc_core::SC_MANY_WRITERS> f0_1;
 
         // f0_2: UInt<6>
-        sc_core::sc_signal<sc_dt::sc_bv<6>, sc_core::SC_MANY_WRITERS> f0_2;
+        chext_test::vutil::signal_t<6, sc_core::SC_MANY_WRITERS> f0_2;
 
         // f0_3: UInt<6>
-        sc_core::sc_signal<sc_dt::sc_bv<6>, sc_core::SC_MANY_WRITERS> f0_3;
+        chext_test::vutil::signal_t<6, sc_core::SC_MANY_WRITERS> f0_3;
 
         // f1_f0: UInt<15>
-        sc_core::sc_signal<sc_dt::sc_bv<15>, sc_core::SC_MANY_WRITERS> f1_f0;
+        chext_test::vutil::signal_t<15, sc_core::SC_MANY_WRITERS> f1_f0;
 
         // f1_f1: Bool
-        sc_core::sc_signal<bool, sc_core::SC_MANY_WRITERS> f1_f1;
+        chext_test::vutil::signal_t<1, sc_core::SC_MANY_WRITERS> f1_f1;
 
-        MyTestBundle2_signals(const char* name) :
-            f0_0(fmt::format("{}_f0_0", name).c_str()),
-            f0_1(fmt::format("{}_f0_1", name).c_str()),
-            f0_2(fmt::format("{}_f0_2", name).c_str()),
-            f0_3(fmt::format("{}_f0_3", name).c_str()),
-            f1_f0(fmt::format("{}_f1_f0", name).c_str()),
-            f1_f1(fmt::format("{}_f1_f1", name).c_str()) { /* empty ctor */ }
+        private:
+            template<unsigned W, typename ValueT, typename SignalT>
+            static ValueT readField(SignalT const& signal) {
+                ValueT value {};
+                chext_test::vutil::read<W>(signal, value);
+                return value;
+            }
 
-        void readTo(value_type & x) {
-            x.~value_type();
+        public:
+            MyTestBundle2_signals(const char* name) :
+                f0_0(fmt::format("{}_f0_0", name).c_str()),
+                f0_1(fmt::format("{}_f0_1", name).c_str()),
+                f0_2(fmt::format("{}_f0_2", name).c_str()),
+                f0_3(fmt::format("{}_f0_3", name).c_str()),
+                f1_f0(fmt::format("{}_f1_f0", name).c_str()),
+                f1_f1(fmt::format("{}_f1_f1", name).c_str()) { /* empty ctor */ }
 
-            new (&x) value_type {
-                static_cast<std::uint8_t>(f0_0.read().to_uint64()),
-                static_cast<std::uint8_t>(f0_1.read().to_uint64()),
-                static_cast<std::uint8_t>(f0_2.read().to_uint64()),
-                static_cast<std::uint8_t>(f0_3.read().to_uint64()),
-                static_cast<std::uint16_t>(f1_f0.read().to_uint64()),
-                f1_f1.read()
-            };
-        }
+            void readTo(value_type & x) {
+                x.~value_type();
 
-        void writeFrom(value_type const& x) {
-            f0_0.write(x.f0_0);
-            f0_1.write(x.f0_1);
-            f0_2.write(x.f0_2);
-            f0_3.write(x.f0_3);
-            f1_f0.write(x.f1_f0);
-            f1_f1.write(x.f1_f1);
-        }
+                new (&x) value_type {
+                    readField<6, std::uint8_t>(f0_0),
+                    readField<6, std::uint8_t>(f0_1),
+                    readField<6, std::uint8_t>(f0_2),
+                    readField<6, std::uint8_t>(f0_3),
+                    readField<15, std::uint16_t>(f1_f0),
+                    readField<1, bool>(f1_f1)
+                };
+            }
+
+            void writeFrom(value_type const& x) {
+                chext_test::vutil::write<6>(f0_0, x.f0_0);
+                chext_test::vutil::write<6>(f0_1, x.f0_1);
+                chext_test::vutil::write<6>(f0_2, x.f0_2);
+                chext_test::vutil::write<6>(f0_3, x.f0_3);
+                chext_test::vutil::write<15>(f1_f0, x.f1_f0);
+                chext_test::vutil::write<1>(f1_f1, x.f1_f1);
+            }
 
     };
 
@@ -275,7 +295,7 @@ public:
     /* END: chext_test public for 'amba/axi4' */
 
     /* BEGIN: chext_test public for 'elastic' */
-    chext_test::elastic::Source<sc_core::sc_signal<sc_dt::sc_bv<32>>> source1;
+    chext_test::elastic::Source<chext_test::vutil::signal_t<32>> source1;
     chext_test::elastic::Source<chext_test::elastic::DataLastSignals<64>> source2;
     chext_test::elastic::Source<PacketSignals<128>> source3;
     chext_test::elastic::Source<MyTestBundle1_signals> source4;

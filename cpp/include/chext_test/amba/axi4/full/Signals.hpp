@@ -3,7 +3,7 @@
 
 #include <chext_test/amba/axi4/full/Packets.hpp>
 #include <chext_test/util/Exception.hpp>
-#include <chext_test/util/VerilatorPort.hpp>
+#include <chext_test/vutil.hpp>
 
 #include <fmt/core.h>
 
@@ -17,10 +17,6 @@ namespace detail {
 using namespace sc_core;
 using namespace sc_dt;
 
-constexpr unsigned notZeroOr(unsigned x, unsigned y) {
-    return x > 0 ? x : y;
-}
-
 inline void validateWidth(char const* field, int actual, unsigned expected) {
     if (actual != (int)expected) {
         throw util::Exception(fmt::format(
@@ -30,54 +26,6 @@ inline void validateWidth(char const* field, int actual, unsigned expected) {
             expected
         ));
     }
-}
-
-struct AbsentSignal {
-    explicit AbsentSignal(char const*) {}
-};
-
-template<bool PRESENT, unsigned WIDTH>
-using optional_signal_t = std::conditional_t<
-    PRESENT,
-    sc_signal<util::verilator_port_signal_t<notZeroOr(WIDTH, 1)>, SC_MANY_WRITERS>,
-    AbsentSignal>;
-
-template<unsigned WIDTH>
-using signal_t = sc_signal<util::verilator_port_signal_t<WIDTH>, SC_MANY_WRITERS>;
-
-// Verilator may expose a port as bool/uint/sc_bv depending on --pins-bv.
-// Packet destinations are either dynamic bit-vectors or scalar metadata fields.
-template<bool PRESENT, unsigned WIDTH, typename SignalT, typename ValueT>
-void writePacketFieldToPortIfPresent(SignalT& signal, ValueT const& value) {
-    if constexpr (PRESENT)
-        util::verilator_port_write<notZeroOr(WIDTH, 1)>(signal, value);
-}
-
-template<bool PRESENT, unsigned WIDTH, typename SignalT, typename ValueT>
-void readPortToPacketBvIfPresent(SignalT const& signal, ValueT& value) {
-    if constexpr (PRESENT)
-        util::verilator_port_read_bv<notZeroOr(WIDTH, 1)>(signal, value);
-}
-
-template<bool PRESENT, unsigned WIDTH, typename SignalT, typename ValueT>
-void readPortToPacketScalarIfPresent(SignalT const& signal, ValueT& value) {
-    if constexpr (PRESENT)
-        value = static_cast<ValueT>(util::verilator_port_read_uint<notZeroOr(WIDTH, 1)>(signal));
-}
-
-template<unsigned WIDTH, typename SignalT, typename ValueT>
-void writePacketFieldToPort(SignalT& signal, ValueT const& value) {
-    util::verilator_port_write<WIDTH>(signal, value);
-}
-
-template<unsigned WIDTH, typename SignalT, typename ValueT>
-void readPortToPacketBv(SignalT const& signal, ValueT& value) {
-    util::verilator_port_read_bv<WIDTH>(signal, value);
-}
-
-template<unsigned WIDTH, typename SignalT, typename ValueT>
-void readPortToPacketScalar(SignalT const& signal, ValueT& value) {
-    value = static_cast<ValueT>(util::verilator_port_read_uint<WIDTH>(signal));
 }
 
 template<
@@ -132,17 +80,17 @@ public:
     struct ReadAddress {
         using value_type = Packets::ReadAddress;
 
-        [[no_unique_address]] optional_signal_t<hasId, config.wId> id;
-        signal_t<config.wAddr> addr;
-        signal_t<config.wLen> len;
-        signal_t<3> size;
-        signal_t<2> burst;
-        [[no_unique_address]] optional_signal_t<config.hasLock, config.wLock> lock;
-        [[no_unique_address]] optional_signal_t<config.hasCache, config.wCache> cache;
-        [[no_unique_address]] optional_signal_t<config.hasProt, config.wProt> prot;
-        [[no_unique_address]] optional_signal_t<config.hasQos, config.wQos> qos;
-        [[no_unique_address]] optional_signal_t<config.hasRegion, config.wRegion> region;
-        [[no_unique_address]] optional_signal_t<hasUserAR, config.wUserAR> user;
+        [[no_unique_address]] vutil::optional_signal_t<hasId, config.wId, SC_MANY_WRITERS> id;
+        vutil::signal_t<config.wAddr, SC_MANY_WRITERS> addr;
+        vutil::signal_t<config.wLen, SC_MANY_WRITERS> len;
+        vutil::signal_t<3, SC_MANY_WRITERS> size;
+        vutil::signal_t<2, SC_MANY_WRITERS> burst;
+        [[no_unique_address]] vutil::optional_signal_t<config.hasLock, config.wLock, SC_MANY_WRITERS> lock;
+        [[no_unique_address]] vutil::optional_signal_t<config.hasCache, config.wCache, SC_MANY_WRITERS> cache;
+        [[no_unique_address]] vutil::optional_signal_t<config.hasProt, config.wProt, SC_MANY_WRITERS> prot;
+        [[no_unique_address]] vutil::optional_signal_t<config.hasQos, config.wQos, SC_MANY_WRITERS> qos;
+        [[no_unique_address]] vutil::optional_signal_t<config.hasRegion, config.wRegion, SC_MANY_WRITERS> region;
+        [[no_unique_address]] vutil::optional_signal_t<hasUserAR, config.wUserAR, SC_MANY_WRITERS> user;
 
         ReadAddress(const char* name)
             : id(fmt::format("{}_id", name).c_str())
@@ -158,45 +106,45 @@ public:
             , user(fmt::format("{}_user", name).c_str()) {}
 
         void writeFrom(value_type const& packet) {
-            validateWidth("ar.id", packet.id.length(), notZeroOr(config.wId, 32));
+            validateWidth("ar.id", packet.id.length(), vutil::width_or(config.wId, 32));
             validateWidth("ar.addr", packet.addr.length(), config.wAddr);
-            validateWidth("ar.user", packet.user.length(), notZeroOr(config.wUserAR, 32));
-            writePacketFieldToPortIfPresent<hasId, config.wId>(id, packet.id);
-            writePacketFieldToPort<config.wAddr>(addr, packet.addr);
-            writePacketFieldToPort<config.wLen>(len, packet.len);
-            writePacketFieldToPort<3>(size, packet.size);
-            writePacketFieldToPort<2>(burst, packet.burst);
-            writePacketFieldToPortIfPresent<config.hasLock, config.wLock>(lock, packet.lock);
-            writePacketFieldToPortIfPresent<config.hasCache, config.wCache>(cache, packet.cache);
-            writePacketFieldToPortIfPresent<config.hasProt, config.wProt>(prot, packet.prot);
-            writePacketFieldToPortIfPresent<config.hasQos, config.wQos>(qos, packet.qos);
-            writePacketFieldToPortIfPresent<config.hasRegion, config.wRegion>(region, packet.region);
-            writePacketFieldToPortIfPresent<hasUserAR, config.wUserAR>(user, packet.user);
+            validateWidth("ar.user", packet.user.length(), vutil::width_or(config.wUserAR, 32));
+            vutil::write_if<hasId, config.wId>(id, packet.id);
+            vutil::write<config.wAddr>(addr, packet.addr);
+            vutil::write<config.wLen>(len, packet.len);
+            vutil::write<3>(size, packet.size);
+            vutil::write<2>(burst, packet.burst);
+            vutil::write_if<config.hasLock, config.wLock>(lock, packet.lock);
+            vutil::write_if<config.hasCache, config.wCache>(cache, packet.cache);
+            vutil::write_if<config.hasProt, config.wProt>(prot, packet.prot);
+            vutil::write_if<config.hasQos, config.wQos>(qos, packet.qos);
+            vutil::write_if<config.hasRegion, config.wRegion>(region, packet.region);
+            vutil::write_if<hasUserAR, config.wUserAR>(user, packet.user);
         }
 
         void readTo(value_type& packet) const {
-            readPortToPacketBvIfPresent<hasId, config.wId>(id, packet.id);
-            readPortToPacketBv<config.wAddr>(addr, packet.addr);
-            readPortToPacketScalar<config.wLen>(len, packet.len);
-            readPortToPacketScalar<3>(size, packet.size);
-            readPortToPacketScalar<2>(burst, packet.burst);
-            readPortToPacketScalarIfPresent<config.hasLock, config.wLock>(lock, packet.lock);
-            readPortToPacketScalarIfPresent<config.hasCache, config.wCache>(cache, packet.cache);
-            readPortToPacketScalarIfPresent<config.hasProt, config.wProt>(prot, packet.prot);
-            readPortToPacketScalarIfPresent<config.hasQos, config.wQos>(qos, packet.qos);
-            readPortToPacketScalarIfPresent<config.hasRegion, config.wRegion>(region, packet.region);
-            readPortToPacketBvIfPresent<hasUserAR, config.wUserAR>(user, packet.user);
+            vutil::read_if<hasId, config.wId>(id, packet.id);
+            vutil::read<config.wAddr>(addr, packet.addr);
+            vutil::read<config.wLen>(len, packet.len);
+            vutil::read<3>(size, packet.size);
+            vutil::read<2>(burst, packet.burst);
+            vutil::read_if<config.hasLock, config.wLock>(lock, packet.lock);
+            vutil::read_if<config.hasCache, config.wCache>(cache, packet.cache);
+            vutil::read_if<config.hasProt, config.wProt>(prot, packet.prot);
+            vutil::read_if<config.hasQos, config.wQos>(qos, packet.qos);
+            vutil::read_if<config.hasRegion, config.wRegion>(region, packet.region);
+            vutil::read_if<hasUserAR, config.wUserAR>(user, packet.user);
         }
     };
 
     struct ReadData {
         using value_type = Packets::ReadData;
 
-        [[no_unique_address]] optional_signal_t<hasId, config.wId> id;
-        signal_t<config.wData> data;
-        signal_t<2> resp;
-        signal_t<1> last;
-        [[no_unique_address]] optional_signal_t<hasUserR, config.wUserR> user;
+        [[no_unique_address]] vutil::optional_signal_t<hasId, config.wId, SC_MANY_WRITERS> id;
+        vutil::signal_t<config.wData, SC_MANY_WRITERS> data;
+        vutil::signal_t<2, SC_MANY_WRITERS> resp;
+        vutil::signal_t<1, SC_MANY_WRITERS> last;
+        [[no_unique_address]] vutil::optional_signal_t<hasUserR, config.wUserR, SC_MANY_WRITERS> user;
 
         ReadData(const char* name)
             : id(fmt::format("{}_id", name).c_str())
@@ -206,39 +154,39 @@ public:
             , user(fmt::format("{}_user", name).c_str()) {}
 
         void writeFrom(value_type const& packet) {
-            validateWidth("r.id", packet.id.length(), notZeroOr(config.wId, 32));
+            validateWidth("r.id", packet.id.length(), vutil::width_or(config.wId, 32));
             validateWidth("r.data", packet.data.length(), config.wData);
-            validateWidth("r.user", packet.user.length(), notZeroOr(config.wUserR, 32));
-            writePacketFieldToPortIfPresent<hasId, config.wId>(id, packet.id);
-            writePacketFieldToPort<config.wData>(data, packet.data);
-            writePacketFieldToPort<2>(resp, packet.resp);
-            writePacketFieldToPort<1>(last, packet.last);
-            writePacketFieldToPortIfPresent<hasUserR, config.wUserR>(user, packet.user);
+            validateWidth("r.user", packet.user.length(), vutil::width_or(config.wUserR, 32));
+            vutil::write_if<hasId, config.wId>(id, packet.id);
+            vutil::write<config.wData>(data, packet.data);
+            vutil::write<2>(resp, packet.resp);
+            vutil::write<1>(last, packet.last);
+            vutil::write_if<hasUserR, config.wUserR>(user, packet.user);
         }
 
         void readTo(value_type& packet) const {
-            readPortToPacketBvIfPresent<hasId, config.wId>(id, packet.id);
-            readPortToPacketBv<config.wData>(data, packet.data);
-            readPortToPacketScalar<2>(resp, packet.resp);
-            readPortToPacketScalar<1>(last, packet.last);
-            readPortToPacketBvIfPresent<hasUserR, config.wUserR>(user, packet.user);
+            vutil::read_if<hasId, config.wId>(id, packet.id);
+            vutil::read<config.wData>(data, packet.data);
+            vutil::read<2>(resp, packet.resp);
+            vutil::read<1>(last, packet.last);
+            vutil::read_if<hasUserR, config.wUserR>(user, packet.user);
         }
     };
 
     struct WriteAddress {
         using value_type = Packets::WriteAddress;
 
-        [[no_unique_address]] optional_signal_t<hasId, config.wId> id;
-        signal_t<config.wAddr> addr;
-        signal_t<config.wLen> len;
-        signal_t<3> size;
-        signal_t<2> burst;
-        [[no_unique_address]] optional_signal_t<config.hasLock, config.wLock> lock;
-        [[no_unique_address]] optional_signal_t<config.hasCache, config.wCache> cache;
-        [[no_unique_address]] optional_signal_t<config.hasProt, config.wProt> prot;
-        [[no_unique_address]] optional_signal_t<config.hasQos, config.wQos> qos;
-        [[no_unique_address]] optional_signal_t<config.hasRegion, config.wRegion> region;
-        [[no_unique_address]] optional_signal_t<hasUserAW, config.wUserAW> user;
+        [[no_unique_address]] vutil::optional_signal_t<hasId, config.wId, SC_MANY_WRITERS> id;
+        vutil::signal_t<config.wAddr, SC_MANY_WRITERS> addr;
+        vutil::signal_t<config.wLen, SC_MANY_WRITERS> len;
+        vutil::signal_t<3, SC_MANY_WRITERS> size;
+        vutil::signal_t<2, SC_MANY_WRITERS> burst;
+        [[no_unique_address]] vutil::optional_signal_t<config.hasLock, config.wLock, SC_MANY_WRITERS> lock;
+        [[no_unique_address]] vutil::optional_signal_t<config.hasCache, config.wCache, SC_MANY_WRITERS> cache;
+        [[no_unique_address]] vutil::optional_signal_t<config.hasProt, config.wProt, SC_MANY_WRITERS> prot;
+        [[no_unique_address]] vutil::optional_signal_t<config.hasQos, config.wQos, SC_MANY_WRITERS> qos;
+        [[no_unique_address]] vutil::optional_signal_t<config.hasRegion, config.wRegion, SC_MANY_WRITERS> region;
+        [[no_unique_address]] vutil::optional_signal_t<hasUserAW, config.wUserAW, SC_MANY_WRITERS> user;
 
         WriteAddress(const char* name)
             : id(fmt::format("{}_id", name).c_str())
@@ -254,44 +202,44 @@ public:
             , user(fmt::format("{}_user", name).c_str()) {}
 
         void writeFrom(value_type const& packet) {
-            validateWidth("aw.id", packet.id.length(), notZeroOr(config.wId, 32));
+            validateWidth("aw.id", packet.id.length(), vutil::width_or(config.wId, 32));
             validateWidth("aw.addr", packet.addr.length(), config.wAddr);
-            validateWidth("aw.user", packet.user.length(), notZeroOr(config.wUserAW, 32));
-            writePacketFieldToPortIfPresent<hasId, config.wId>(id, packet.id);
-            writePacketFieldToPort<config.wAddr>(addr, packet.addr);
-            writePacketFieldToPort<config.wLen>(len, packet.len);
-            writePacketFieldToPort<3>(size, packet.size);
-            writePacketFieldToPort<2>(burst, packet.burst);
-            writePacketFieldToPortIfPresent<config.hasLock, config.wLock>(lock, packet.lock);
-            writePacketFieldToPortIfPresent<config.hasCache, config.wCache>(cache, packet.cache);
-            writePacketFieldToPortIfPresent<config.hasProt, config.wProt>(prot, packet.prot);
-            writePacketFieldToPortIfPresent<config.hasQos, config.wQos>(qos, packet.qos);
-            writePacketFieldToPortIfPresent<config.hasRegion, config.wRegion>(region, packet.region);
-            writePacketFieldToPortIfPresent<hasUserAW, config.wUserAW>(user, packet.user);
+            validateWidth("aw.user", packet.user.length(), vutil::width_or(config.wUserAW, 32));
+            vutil::write_if<hasId, config.wId>(id, packet.id);
+            vutil::write<config.wAddr>(addr, packet.addr);
+            vutil::write<config.wLen>(len, packet.len);
+            vutil::write<3>(size, packet.size);
+            vutil::write<2>(burst, packet.burst);
+            vutil::write_if<config.hasLock, config.wLock>(lock, packet.lock);
+            vutil::write_if<config.hasCache, config.wCache>(cache, packet.cache);
+            vutil::write_if<config.hasProt, config.wProt>(prot, packet.prot);
+            vutil::write_if<config.hasQos, config.wQos>(qos, packet.qos);
+            vutil::write_if<config.hasRegion, config.wRegion>(region, packet.region);
+            vutil::write_if<hasUserAW, config.wUserAW>(user, packet.user);
         }
 
         void readTo(value_type& packet) const {
-            readPortToPacketBvIfPresent<hasId, config.wId>(id, packet.id);
-            readPortToPacketBv<config.wAddr>(addr, packet.addr);
-            readPortToPacketScalar<config.wLen>(len, packet.len);
-            readPortToPacketScalar<3>(size, packet.size);
-            readPortToPacketScalar<2>(burst, packet.burst);
-            readPortToPacketScalarIfPresent<config.hasLock, config.wLock>(lock, packet.lock);
-            readPortToPacketScalarIfPresent<config.hasCache, config.wCache>(cache, packet.cache);
-            readPortToPacketScalarIfPresent<config.hasProt, config.wProt>(prot, packet.prot);
-            readPortToPacketScalarIfPresent<config.hasQos, config.wQos>(qos, packet.qos);
-            readPortToPacketScalarIfPresent<config.hasRegion, config.wRegion>(region, packet.region);
-            readPortToPacketBvIfPresent<hasUserAW, config.wUserAW>(user, packet.user);
+            vutil::read_if<hasId, config.wId>(id, packet.id);
+            vutil::read<config.wAddr>(addr, packet.addr);
+            vutil::read<config.wLen>(len, packet.len);
+            vutil::read<3>(size, packet.size);
+            vutil::read<2>(burst, packet.burst);
+            vutil::read_if<config.hasLock, config.wLock>(lock, packet.lock);
+            vutil::read_if<config.hasCache, config.wCache>(cache, packet.cache);
+            vutil::read_if<config.hasProt, config.wProt>(prot, packet.prot);
+            vutil::read_if<config.hasQos, config.wQos>(qos, packet.qos);
+            vutil::read_if<config.hasRegion, config.wRegion>(region, packet.region);
+            vutil::read_if<hasUserAW, config.wUserAW>(user, packet.user);
         }
     };
 
     struct WriteData {
         using value_type = Packets::WriteData;
 
-        signal_t<config.wData> data;
-        signal_t<config.wStrobe> strb;
-        signal_t<1> last;
-        [[no_unique_address]] optional_signal_t<hasUserW, config.wUserW> user;
+        vutil::signal_t<config.wData, SC_MANY_WRITERS> data;
+        vutil::signal_t<config.wStrobe, SC_MANY_WRITERS> strb;
+        vutil::signal_t<1, SC_MANY_WRITERS> last;
+        [[no_unique_address]] vutil::optional_signal_t<hasUserW, config.wUserW, SC_MANY_WRITERS> user;
 
         WriteData(const char* name)
             : data(fmt::format("{}_data", name).c_str())
@@ -302,27 +250,27 @@ public:
         void writeFrom(value_type const& packet) {
             validateWidth("w.data", packet.data.length(), config.wData);
             validateWidth("w.strb", packet.strb.length(), config.wStrobe);
-            validateWidth("w.user", packet.user.length(), notZeroOr(config.wUserW, 32));
-            writePacketFieldToPort<config.wData>(data, packet.data);
-            writePacketFieldToPort<config.wStrobe>(strb, packet.strb);
-            writePacketFieldToPort<1>(last, packet.last);
-            writePacketFieldToPortIfPresent<hasUserW, config.wUserW>(user, packet.user);
+            validateWidth("w.user", packet.user.length(), vutil::width_or(config.wUserW, 32));
+            vutil::write<config.wData>(data, packet.data);
+            vutil::write<config.wStrobe>(strb, packet.strb);
+            vutil::write<1>(last, packet.last);
+            vutil::write_if<hasUserW, config.wUserW>(user, packet.user);
         }
 
         void readTo(value_type& packet) const {
-            readPortToPacketBv<config.wData>(data, packet.data);
-            readPortToPacketBv<config.wStrobe>(strb, packet.strb);
-            readPortToPacketScalar<1>(last, packet.last);
-            readPortToPacketBvIfPresent<hasUserW, config.wUserW>(user, packet.user);
+            vutil::read<config.wData>(data, packet.data);
+            vutil::read<config.wStrobe>(strb, packet.strb);
+            vutil::read<1>(last, packet.last);
+            vutil::read_if<hasUserW, config.wUserW>(user, packet.user);
         }
     };
 
     struct WriteResponse {
         using value_type = Packets::WriteResponse;
 
-        [[no_unique_address]] optional_signal_t<hasId, config.wId> id;
-        signal_t<2> resp;
-        [[no_unique_address]] optional_signal_t<hasUserB, config.wUserB> user;
+        [[no_unique_address]] vutil::optional_signal_t<hasId, config.wId, SC_MANY_WRITERS> id;
+        vutil::signal_t<2, SC_MANY_WRITERS> resp;
+        [[no_unique_address]] vutil::optional_signal_t<hasUserB, config.wUserB, SC_MANY_WRITERS> user;
 
         WriteResponse(const char* name)
             : id(fmt::format("{}_id", name).c_str())
@@ -330,17 +278,17 @@ public:
             , user(fmt::format("{}_user", name).c_str()) {}
 
         void writeFrom(value_type const& packet) {
-            validateWidth("b.id", packet.id.length(), notZeroOr(config.wId, 32));
-            validateWidth("b.user", packet.user.length(), notZeroOr(config.wUserB, 32));
-            writePacketFieldToPortIfPresent<hasId, config.wId>(id, packet.id);
-            writePacketFieldToPort<2>(resp, packet.resp);
-            writePacketFieldToPortIfPresent<hasUserB, config.wUserB>(user, packet.user);
+            validateWidth("b.id", packet.id.length(), vutil::width_or(config.wId, 32));
+            validateWidth("b.user", packet.user.length(), vutil::width_or(config.wUserB, 32));
+            vutil::write_if<hasId, config.wId>(id, packet.id);
+            vutil::write<2>(resp, packet.resp);
+            vutil::write_if<hasUserB, config.wUserB>(user, packet.user);
         }
 
         void readTo(value_type& packet) const {
-            readPortToPacketBvIfPresent<hasId, config.wId>(id, packet.id);
-            readPortToPacketScalar<2>(resp, packet.resp);
-            readPortToPacketBvIfPresent<hasUserB, config.wUserB>(user, packet.user);
+            vutil::read_if<hasId, config.wId>(id, packet.id);
+            vutil::read<2>(resp, packet.resp);
+            vutil::read_if<hasUserB, config.wUserB>(user, packet.user);
         }
     };
 };

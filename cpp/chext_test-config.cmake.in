@@ -6,6 +6,7 @@ get_filename_component(CHEXT_TEST_INSTALL_PREFIX "${CHEXT_TEST_CONFIG_CMAKE}/../
 
 
 set(CMAKE_CXX_STANDARD @CMAKE_CXX_STANDARD@)
-set(VERILATOR_ARGS --pins-bv 2 -Wno-SYMRSVDWORD) # maybe add --trace?
+set(VERILATOR_ARGS @VERILATOR_ARGS@) # maybe add --trace?
+set(VERILATOR_PINS_BV_VALUE @VERILATOR_PINS_BV_VALUE@)
 
 include("${CHEXT_TEST_INSTALL_PREFIX}/lib/chext_test/chext_test-targets.cmake")

@@ -1,5 +1,6 @@
 #include <chext_test/elastic/Driver.hpp>
 #include <chext_test/util/Spawn.hpp>
+#include <chext_test/vutil.hpp>
 using namespace chext_test::elastic;
 
 #include <iostream>
@@ -45,9 +46,9 @@ struct ElasticModule : sc_module {
     }
 
 public:
-    Source<sc_signal<sc_bv<32>, SC_MANY_WRITERS>> source1;
-    Source<sc_signal<sc_bv<32>, SC_MANY_WRITERS>> source2;
-    Sink<sc_signal<sc_bv<32>, SC_MANY_WRITERS>> sink;
+    Source<chext_test::vutil::signal_t<32, SC_MANY_WRITERS>> source1;
+    Source<chext_test::vutil::signal_t<32, SC_MANY_WRITERS>> source2;
+    Sink<chext_test::vutil::signal_t<32, SC_MANY_WRITERS>> sink;
 
 public:
     VElasticModule verilatedModule;

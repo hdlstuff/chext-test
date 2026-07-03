@@ -3,6 +3,7 @@
 
 #include <chext_test/amba/axi4/lite/Packets.hpp>
 #include <chext_test/util/Exception.hpp>
+#include <chext_test/vutil.hpp>
 #include <fmt/core.h>
 #include <systemc>
 
@@ -49,8 +50,8 @@ struct Signals {
     struct ReadAddress {
         using value_type = Packets::ReadAddress;
 
-        sc_signal<sc_bv<wAddr>, SC_MANY_WRITERS> addr;
-        sc_signal<sc_bv<3>, SC_MANY_WRITERS> prot;
+        vutil::signal_t<wAddr, SC_MANY_WRITERS> addr;
+        vutil::signal_t<3, SC_MANY_WRITERS> prot;
 
         ReadAddress(const char* name)
             : addr(fmt::format("{}_addr", name).c_str())
@@ -58,21 +59,21 @@ struct Signals {
 
         void writeFrom(value_type const& packet) {
             validateWidth("ar.addr", packet.addr.length(), wAddr);
-            addr.write(packet.addr);
-            prot.write(packet.prot);
+            vutil::write<wAddr>(addr, packet.addr);
+            vutil::write<3>(prot, packet.prot);
         }
 
         void readTo(value_type& packet) const {
-            packet.addr = addr.read();
-            packet.prot = prot.read().to_uint();
+            vutil::read<wAddr>(addr, packet.addr);
+            vutil::read<3>(prot, packet.prot);
         }
     };
 
     struct ReadData {
         using value_type = Packets::ReadData;
 
-        sc_signal<sc_bv<wData>, SC_MANY_WRITERS> data;
-        sc_signal<sc_bv<2>, SC_MANY_WRITERS> resp;
+        vutil::signal_t<wData, SC_MANY_WRITERS> data;
+        vutil::signal_t<2, SC_MANY_WRITERS> resp;
 
         ReadData(const char* name)
             : data(fmt::format("{}_data", name).c_str())
@@ -80,21 +81,21 @@ struct Signals {
 
         void writeFrom(value_type const& packet) {
             validateWidth("r.data", packet.data.length(), wData);
-            data.write(packet.data);
-            resp.write(packet.resp);
+            vutil::write<wData>(data, packet.data);
+            vutil::write<2>(resp, packet.resp);
         }
 
         void readTo(value_type& packet) const {
-            packet.data = data.read();
-            packet.resp = resp.read().to_uint();
+            vutil::read<wData>(data, packet.data);
+            vutil::read<2>(resp, packet.resp);
         }
     };
 
     struct WriteAddress {
         using value_type = Packets::WriteAddress;
 
-        sc_signal<sc_bv<wAddr>, SC_MANY_WRITERS> addr;
-        sc_signal<sc_bv<3>, SC_MANY_WRITERS> prot;
+        vutil::signal_t<wAddr, SC_MANY_WRITERS> addr;
+        vutil::signal_t<3, SC_MANY_WRITERS> prot;
 
         WriteAddress(const char* name)
             : addr(fmt::format("{}_addr", name).c_str())
@@ -102,21 +103,21 @@ struct Signals {
 
         void writeFrom(value_type const& packet) {
             validateWidth("aw.addr", packet.addr.length(), wAddr);
-            addr.write(packet.addr);
-            prot.write(packet.prot);
+            vutil::write<wAddr>(addr, packet.addr);
+            vutil::write<3>(prot, packet.prot);
         }
 
         void readTo(value_type& packet) const {
-            packet.addr = addr.read();
-            packet.prot = prot.read().to_uint();
+            vutil::read<wAddr>(addr, packet.addr);
+            vutil::read<3>(prot, packet.prot);
         }
     };
 
     struct WriteData {
         using value_type = Packets::WriteData;
 
-        sc_signal<sc_bv<wData>, SC_MANY_WRITERS> data;
-        sc_signal<sc_bv<wStrb>, SC_MANY_WRITERS> strb;
+        vutil::signal_t<wData, SC_MANY_WRITERS> data;
+        vutil::signal_t<wStrb, SC_MANY_WRITERS> strb;
 
         WriteData(const char* name)
             : data(fmt::format("{}_data", name).c_str())
@@ -125,30 +126,30 @@ struct Signals {
         void writeFrom(value_type const& packet) {
             validateWidth("w.data", packet.data.length(), wData);
             validateWidth("w.strb", packet.strb.length(), wStrobe);
-            data.write(packet.data);
-            strb.write(packet.strb);
+            vutil::write<wData>(data, packet.data);
+            vutil::write<wStrb>(strb, packet.strb);
         }
 
         void readTo(value_type& packet) const {
-            packet.data = data.read();
-            packet.strb = strb.read();
+            vutil::read<wData>(data, packet.data);
+            vutil::read<wStrb>(strb, packet.strb);
         }
     };
 
     struct WriteResponse {
         using value_type = Packets::WriteResponse;
 
-        sc_signal<sc_bv<2>, SC_MANY_WRITERS> resp;
+        vutil::signal_t<2, SC_MANY_WRITERS> resp;
 
         WriteResponse(const char* name)
             : resp(fmt::format("{}_resp", name).c_str()) {}
 
         void writeFrom(value_type const& packet) {
-            resp.write(packet.resp);
+            vutil::write<2>(resp, packet.resp);
         }
 
         void readTo(value_type& packet) const {
-            packet.resp = resp.read().to_uint();
+            vutil::read<2>(resp, packet.resp);
         }
     };
 };

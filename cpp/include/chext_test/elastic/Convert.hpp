@@ -33,6 +33,20 @@ struct Converter<From, To, std::enable_if_t<std::is_integral_v<From> && std::is_
     }
 };
 
+template<typename From>
+struct Converter<From, std::string, std::enable_if_t<std::is_integral_v<From>>> {
+    static std::string convert(From const& from) {
+        return fmt::format("{:x}", from);
+    }
+};
+
+template<typename To>
+struct Converter<std::string, To, std::enable_if_t<std::is_integral_v<To>>> {
+    static To convert(std::string const& from) {
+        return static_cast<To>(std::stoull(from, nullptr, 16));
+    }
+};
+
 template<int W, typename To>
 struct Converter<sc_dt::sc_bv<W>, To, std::enable_if_t<std::is_integral_v<To>>> {
     static To convert(sc_dt::sc_bv<W> const& from) {

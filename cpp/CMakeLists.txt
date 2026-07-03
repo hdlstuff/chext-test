@@ -7,8 +7,23 @@ find_package(SystemCLanguage REQUIRED)
 find_package(fmt REQUIRED)
 find_package(hdlstuff_hal)
 
-# set(VERILATOR_ARGS --pins-bv 2 --trace -Wno-SYMRSVDWORD)
-set(VERILATOR_ARGS --pins-bv 2 -Wno-SYMRSVDWORD)
+# set(VERILATOR_ARGS --trace -Wno-SYMRSVDWORD)
+set(VERILATOR_ARGS -Wno-SYMRSVDWORD CACHE STRING "Arguments passed to Verilator")
+
+set(VERILATOR_PINS_BV_VALUE 65)
+list(FIND VERILATOR_ARGS "--pins-bv" VERILATOR_PINS_BV_INDEX)
+if(NOT VERILATOR_PINS_BV_INDEX EQUAL -1)
+    math(EXPR VERILATOR_PINS_BV_VALUE_INDEX "${VERILATOR_PINS_BV_INDEX} + 1")
+    list(LENGTH VERILATOR_ARGS VERILATOR_ARGS_COUNT)
+    if(VERILATOR_PINS_BV_VALUE_INDEX LESS VERILATOR_ARGS_COUNT)
+        list(GET VERILATOR_ARGS ${VERILATOR_PINS_BV_VALUE_INDEX} VERILATOR_PINS_BV_VALUE)
+    endif()
+endif()
+foreach(VERILATOR_ARG IN LISTS VERILATOR_ARGS)
+    if(VERILATOR_ARG MATCHES "^--pins-bv=([0-9]+)$")
+        set(VERILATOR_PINS_BV_VALUE "${CMAKE_MATCH_1}")
+    endif()
+endforeach()
 
 add_library(
     chext_test
@@ -34,7 +49,7 @@ target_link_libraries(
 target_compile_definitions(
     chext_test
     PUBLIC
-    CHEXT_TEST_VERILATOR_PINS_BV_VALUE=2
+    CHEXT_TEST_VERILATOR_PINS_BV_VALUE=${VERILATOR_PINS_BV_VALUE}
 )
 
 add_executable(test1 test/test1.cpp)

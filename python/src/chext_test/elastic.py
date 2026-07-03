@@ -86,6 +86,7 @@ class WrapperLocalElasticProtocolHook(wrapper.Hook):
             d.iwriteln(f"#include {mkIncludeStr('jqr/core.hpp')}")
             d.iwriteln(f"#include {mkIncludeStr('jqr/comp_eq.hpp')}")
             d.iwriteln(f"#include {mkIncludeStr('jqr/dump.hpp')}")
+            d.iwriteln(f"#include {mkIncludeStr('chext_test/vutil.hpp')}")
             d.iwriteln(
                 "/* END: chext_test includes added by 'EncodedDataListHook' */"
             )
@@ -188,16 +189,32 @@ class WrapperLocalElasticProtocolHook(wrapper.Hook):
 
                         members.append(member)
 
-                        dataType = "bool" if member.width == 1 else f"sc_dt::sc_bv<{member.width}>"
                         d.iwriteln(
                             f"// {member.path}: {member.tpe}"
                         )
                         d.iwriteln(
-                            f"sc_core::sc_signal<{dataType}, sc_core::SC_MANY_WRITERS> {member.path};"
+                            f"chext_test::vutil::signal_t<{member.width}, sc_core::SC_MANY_WRITERS> {member.path};"
                         )
                         d.separate()
 
                     if len(members) > 0:
+                        d.iwriteln("private:")
+                        d.indent_in()
+
+                        d.iwriteln("template<unsigned W, typename ValueT, typename SignalT>")
+                        d.iwriteln("static ValueT readField(SignalT const& signal) {")
+                        d.indent_in()
+                        d.iwriteln("ValueT value {};")
+                        d.iwriteln("chext_test::vutil::read<W>(signal, value);")
+                        d.iwriteln("return value;")
+                        d.indent_out()
+                        d.iwriteln("}")
+                        d.separate()
+
+                        d.indent_out()
+                        d.iwriteln("public:")
+                        d.indent_in()
+
                         # constructor
                         d.iwriteln(
                             f"{encodedData.name}_signals(const char* name) :"
@@ -226,44 +243,34 @@ class WrapperLocalElasticProtocolHook(wrapper.Hook):
                         d.iwriteln(f"new (&x) value_type {{")
                         d.indent_in()
 
-                        for member in members:
-                            if member.width == 1:
-                                d.iwrite(
-                                    f'{member.path}.read()'
-                                )
-                            elif member.width <= 64:
-                                def makeStdIntType(width):
-                                    if member.tpe.startswith("UInt"):
-                                        return f"std::uint{width}_t"
-                                    elif member.tpe.startswith("SInt"):
-                                        return f"std::int{width}_t"
-                                    else:
-                                        print("WARNING: makeStdIntType: not UInt or SInt? defaulting to std::uintN_t")
-                                        return f"std::uint{width}_t"
-
-                                if member.width == 1:
-                                    dataType = "bool"
-                                elif member.width <= 8:
-                                    dataType = makeStdIntType(8)
-                                elif member.width <= 16:
-                                    dataType = makeStdIntType(16)
-                                elif member.width <= 32:
-                                    dataType = makeStdIntType(32)
-                                elif member.width <= 64:
-                                    dataType = makeStdIntType(64)
+                        def valueDataType(member: EncodedDataEntry):
+                            def makeStdIntType(width):
+                                if member.tpe.startswith("UInt"):
+                                    return f"std::uint{width}_t"
+                                elif member.tpe.startswith("SInt"):
+                                    return f"std::int{width}_t"
                                 else:
-                                    dataType = f"sc_dt::sc_bv<{member.width}>"
-                                
-                                funcName = "to_uint64" if member.tpe.startswith("UInt") else "to_int64"
+                                    print("WARNING: makeStdIntType: not UInt or SInt? defaulting to std::uintN_t")
+                                    return f"std::uint{width}_t"
 
-                                d.iwrite(
-                                    f'static_cast<{dataType}>({member.path}.read().{funcName}())'
-                                )
+                            if member.width == 1:
+                                return "bool"
+                            elif member.width <= 8:
+                                return makeStdIntType(8)
+                            elif member.width <= 16:
+                                return makeStdIntType(16)
+                            elif member.width <= 32:
+                                return makeStdIntType(32)
+                            elif member.width <= 64:
+                                return makeStdIntType(64)
                             else:
-                                d.iwrite(
-                                    f'{member.path}.read()'
-                                )
+                                return f"sc_dt::sc_bv<{member.width}>"
 
+                        for member in members:
+                            dataType = valueDataType(member)
+                            d.iwrite(
+                                f"readField<{member.width}, {dataType}>({member.path})"
+                            )
                             d.writeln(",")
 
                         d.unwrite()
@@ -271,7 +278,6 @@ class WrapperLocalElasticProtocolHook(wrapper.Hook):
 
                         d.indent_out()
                         d.iwriteln(f"}};")
-
                         d.indent_out()
                         d.iwriteln(f"}}")
                         d.separate()
@@ -284,11 +290,13 @@ class WrapperLocalElasticProtocolHook(wrapper.Hook):
 
                         for member in members:
                             d.iwriteln(
-                                f"{member.path}.write(x.{member.path});")
+                                f"chext_test::vutil::write<{member.width}>({member.path}, x.{member.path});")
 
                         d.indent_out()
                         d.iwriteln(f"}}")
                         d.separate()
+
+                        d.indent_out()
 
                     else:
                         d.iwriteln(
@@ -349,6 +357,8 @@ class ElasticProtocolHandler(wrapper.StatefulInterfaceHandler):
             d.iwriteln(f"/* BEGIN: chext_test includes for 'elastic' */")
             d.iwriteln(
                 f"#include {self._mkIncludeStr('chext_test/elastic/Driver.hpp')}")
+            d.iwriteln(
+                f"#include {self._mkIncludeStr('chext_test/vutil.hpp')}")
             dumpBlockList(d, self._includeBlocks)
             d.iwriteln(f"/* END: chext_test includes for 'elastic' */")
 
@@ -390,14 +400,14 @@ class ElasticProtocolHandler(wrapper.StatefulInterfaceHandler):
                 elif width == 1:
                     self._wrapperLocalElasticProtocols[encodedData.name] = WrapperLocalElasticProtocol(
                         encodedData.name,
-                        "sc_core::sc_signal<bool, sc_core::SC_MANY_WRITERS>",
+                        "chext_test::vutil::signal_t<1, sc_core::SC_MANY_WRITERS>",
                         [""]
                     )
 
                 else:
                     self._wrapperLocalElasticProtocols[encodedData.name] = WrapperLocalElasticProtocol(
                         encodedData.name,
-                        f"sc_core::sc_signal<sc_dt::sc_bv<{width}>, sc_core::SC_MANY_WRITERS>",
+                        f"chext_test::vutil::signal_t<{width}, sc_core::SC_MANY_WRITERS>",
                         [""]
                     )
 
@@ -554,7 +564,7 @@ def registerBasicElasticProtocols():
                 raise RuntimeError(
                     "chext.elastic.Data: interface argument 'width' must be an integer.")
 
-            return f"sc_core::sc_signal<sc_dt::sc_bv<{width}>>"
+            return f"chext_test::vutil::signal_t<{width}>"
 
         ElasticProtocol(
             "chext.elastic.Data",
