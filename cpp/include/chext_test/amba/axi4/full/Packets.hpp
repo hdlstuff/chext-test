@@ -3,6 +3,8 @@
 
 #include <chext_test/amba/axi4/Config.hpp>
 #include <chext_test/util/ScDump.hpp>
+#include <chext_test/util/Util.hpp>
+#include <chext_test/vutil.hpp>
 #include <jqr/comp_eq.hpp>
 #include <jqr/dump.hpp>
 #include <systemc>
@@ -163,12 +165,8 @@ struct WriteResponse {
     JQR_COMP_EQ
 };
 
-constexpr unsigned storageWidth(unsigned width, unsigned fallback = 32) {
-    return width > 0 ? width : fallback;
-}
-
 inline AddressBase::AddressBase(Config const& config, unsigned wUser)
-    : id((int)storageWidth(config.wId))
+    : id((int)util::width_or(config.wId, 32))
     , addr((int)config.wAddr)
     , len(0)
     , size(0)
@@ -178,7 +176,7 @@ inline AddressBase::AddressBase(Config const& config, unsigned wUser)
     , prot(0)
     , qos(0)
     , region(0)
-    , user((int)storageWidth(wUser)) {}
+    , user((int)util::width_or(wUser, 32)) {}
 
 inline ReadAddress::ReadAddress(Config const& config)
     : AddressBase(config, config.wUserAR) {}
@@ -187,22 +185,22 @@ inline WriteAddress::WriteAddress(Config const& config)
     : AddressBase(config, config.wUserAW) {}
 
 inline ReadData::ReadData(Config const& config)
-    : id((int)storageWidth(config.wId))
+    : id((int)util::width_or(config.wId, 32))
     , data((int)config.wData)
     , resp(0)
     , last(false)
-    , user((int)storageWidth(config.wUserR)) {}
+    , user((int)util::width_or(config.wUserR, 32)) {}
 
 inline WriteData::WriteData(Config const& config)
     : data((int)config.wData)
     , strb((int)config.wStrobe)
     , last(false)
-    , user((int)storageWidth(config.wUserW)) {}
+    , user((int)util::width_or(config.wUserW, 32)) {}
 
 inline WriteResponse::WriteResponse(Config const& config)
-    : id((int)storageWidth(config.wId))
+    : id((int)util::width_or(config.wId, 32))
     , resp(0)
-    , user((int)storageWidth(config.wUserB)) {}
+    , user((int)util::width_or(config.wUserB, 32)) {}
 
 struct Packets {
     using ReadAddress = detail::ReadAddress;

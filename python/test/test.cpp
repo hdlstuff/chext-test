@@ -8,6 +8,8 @@ ScmyModule::ScmyModule(sc_core::sc_module_name const& moduleName) :
     irq("irq"),
     s_axil_management("s_axil_management", clock, reset),
     m_axi("m_axi", clock, reset),
+    m_axis("m_axis", clock, reset),
+    s_axis_hier("s_axis_hier", clock, reset),
     source1("source1", clock, reset),
     source2("source2", clock, reset),
     source3("source3", clock, reset),
@@ -99,6 +101,24 @@ ScmyModule::ScmyModule(sc_core::sc_module_name const& moduleName) :
     verilatedModule_.m_axi_RLAST(this->m_axi.r.bits.last);
 
     /* END: chext_test ctor for 'amba/axi4' */
+
+    /* BEGIN: chext_test ctor for 'amba/axi4s' */
+    verilatedModule_.m_axis_TVALID(this->m_axis.valid);
+    verilatedModule_.m_axis_TREADY(this->m_axis.ready);
+    verilatedModule_.m_axis_TDATA(this->m_axis.bits.data);
+    verilatedModule_.m_axis_TKEEP(this->m_axis.bits.keep);
+    verilatedModule_.m_axis_TSTRB(this->m_axis.bits.strb);
+    verilatedModule_.m_axis_TLAST(this->m_axis.bits.last);
+    verilatedModule_.m_axis_TID(this->m_axis.bits.id);
+    verilatedModule_.m_axis_TDEST(this->m_axis.bits.dest);
+    verilatedModule_.m_axis_TUSER(this->m_axis.bits.user);
+
+    verilatedModule_.s_axis_hier_valid(this->s_axis_hier.valid);
+    verilatedModule_.s_axis_hier_bits_data(this->s_axis_hier.bits.data);
+    verilatedModule_.s_axis_hier_bits_keep(this->s_axis_hier.bits.keep);
+    verilatedModule_.s_axis_hier_bits_user(this->s_axis_hier.bits.user);
+
+    /* END: chext_test ctor for 'amba/axi4s' */
 
     /* BEGIN: chext_test ctor for 'elastic' */
     verilatedModule_.source1_bits(this->source1.bits);

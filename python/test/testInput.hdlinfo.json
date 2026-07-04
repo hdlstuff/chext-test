@@ -102,6 +102,50 @@
             }
         },
         {
+            "name": "m_axis",
+            "role": "master",
+            "kind": "axi4s",
+            "associatedClock": "clock",
+            "associatedReset": "reset",
+            "args": {
+                "config": {
+                    "typeName": "hdlinfo.protocols.amba.axi4s.Config",
+                    "obj": {
+                        "wData": 64,
+                        "wId": 4,
+                        "wDest": 2,
+                        "wUser": 8,
+                        "hasReady": true,
+                        "hasStrobe": true,
+                        "hasKeep": true,
+                        "hasLast": true
+                    }
+                }
+            }
+        },
+        {
+            "name": "s_axis_hier",
+            "role": "slave",
+            "kind": "axi4s_rtl_hier",
+            "associatedClock": "clock",
+            "associatedReset": "reset",
+            "args": {
+                "config": {
+                    "typeName": "hdlinfo.protocols.amba.axi4s.Config",
+                    "obj": {
+                        "wData": 32,
+                        "wId": 0,
+                        "wDest": 0,
+                        "wUser": 1,
+                        "hasReady": false,
+                        "hasStrobe": false,
+                        "hasKeep": true,
+                        "hasLast": false
+                    }
+                }
+            }
+        },
+        {
             "name": "source1",
             "role": "source",
             "kind": "readyValid[chext.elastic.Data]",

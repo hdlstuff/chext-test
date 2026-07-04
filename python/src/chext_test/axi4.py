@@ -68,6 +68,10 @@ def _getVerilatedSignalName(interface: hdlinfo.Interface, signal: str) -> str:
     return f"{interface.name}_{signal}"
 
 
+def _cppBool(value: bool) -> str:
+    return "true" if value else "false"
+
+
 @wrapper.registerInterfaceHandlerCustom("InterfaceHandlerAxi4")
 class Axi4InterfaceHandler(wrapper.StatefulInterfaceHandler):
     def __init__(self, wrapper: wrapper.Wrapper, cg: codegen.CodeGen) -> None:
@@ -136,14 +140,14 @@ class Axi4InterfaceHandler(wrapper.StatefulInterfaceHandler):
             paramsList.append(str(cfg.wId))
             paramsList.append(str(cfg.wAddr))
             paramsList.append(str(cfg.wData))
-            paramsList.append("true" if cfg.read else "false")
-            paramsList.append("true" if cfg.write else "false")
-            paramsList.append("true" if cfg.hasLock else "false")
-            paramsList.append("true" if cfg.hasCache else "false")
-            paramsList.append("true" if cfg.hasProt else "false")
-            paramsList.append("true" if cfg.hasQos else "false")
-            paramsList.append("true" if cfg.hasRegion else "false")
-            paramsList.append("true" if cfg.axi3Compat else "false")
+            paramsList.append(_cppBool(cfg.read))
+            paramsList.append(_cppBool(cfg.write))
+            paramsList.append(_cppBool(cfg.hasLock))
+            paramsList.append(_cppBool(cfg.hasCache))
+            paramsList.append(_cppBool(cfg.hasProt))
+            paramsList.append(_cppBool(cfg.hasQos))
+            paramsList.append(_cppBool(cfg.hasRegion))
+            paramsList.append(_cppBool(cfg.axi3Compat))
             paramsList.append(str(cfg.wUserAR))
             paramsList.append(str(cfg.wUserR))
             paramsList.append(str(cfg.wUserAW))

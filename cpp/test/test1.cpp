@@ -142,6 +142,18 @@ protected:
 
         fmt::print("writeResponseLite = {}\n", writeResponseLite);
 
+        chext_test::amba::axi4s::Config axiStreamCfg { 64, 4, 2, 8 };
+        chext_test::amba::axi4s::Packet streamPacket { axiStreamCfg };
+        streamPacket.data = sc_bv<64>(0xDEAD'BEEF);
+        streamPacket.strb = sc_bv<8>(0xff);
+        streamPacket.keep = sc_bv<8>(0xff);
+        streamPacket.last = true;
+        streamPacket.id = sc_bv<4>(0xa);
+        streamPacket.dest = sc_bv<2>(0x2);
+        streamPacket.user = sc_bv<8>(0x55);
+
+        fmt::print("streamPacket = {}\n", streamPacket);
+
         finish();
     }
 };

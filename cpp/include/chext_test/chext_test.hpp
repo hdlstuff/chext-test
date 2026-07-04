@@ -13,6 +13,10 @@
 #include <chext_test/amba/axi4/lite/Packets.hpp>
 #include <chext_test/amba/axi4/lite/Signals.hpp>
 
+#include <chext_test/amba/axi4s/Driver.hpp>
+#include <chext_test/amba/axi4s/Packets.hpp>
+#include <chext_test/amba/axi4s/Signals.hpp>
+
 #include <chext_test/elastic/Driver.hpp>
 
 #include <chext_test/util/ScDump.hpp>
