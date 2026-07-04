@@ -61,6 +61,13 @@ _SIGNAL_MAP = {
 }
 
 
+def _getVerilatedSignalName(interface: hdlinfo.Interface, signal: str) -> str:
+    if interface.kind == "axi4_rtl_hier":
+        return f"{interface.name}_{_SIGNAL_MAP[signal].replace('.', '_')}"
+
+    return f"{interface.name}_{signal}"
+
+
 @wrapper.registerInterfaceHandlerCustom("InterfaceHandlerAxi4")
 class Axi4InterfaceHandler(wrapper.StatefulInterfaceHandler):
     def __init__(self, wrapper: wrapper.Wrapper, cg: codegen.CodeGen) -> None:
@@ -157,7 +164,8 @@ class Axi4InterfaceHandler(wrapper.StatefulInterfaceHandler):
 
         def ctorBlock(d: codegen.Dumper) -> None:
             for signal in cfg.signals:
-                d.iwriteln(f"verilatedModule_.{name}_{signal}(this->{name}.{_SIGNAL_MAP[signal]});")
+                verilatedSignalName = _getVerilatedSignalName(interface, signal)
+                d.iwriteln(f"verilatedModule_.{verilatedSignalName}(this->{name}.{_SIGNAL_MAP[signal]});")
             d.separate()
 
         self._publicBlocks.append(publicBlock)
@@ -166,4 +174,4 @@ class Axi4InterfaceHandler(wrapper.StatefulInterfaceHandler):
 
     @staticmethod
     def checkKind(kind: str) -> bool:
-        return kind == "axi4" or kind == "axi4_rtl"
+        return kind == "axi4" or kind == "axi4_rtl" or kind == "axi4_rtl_hier"
