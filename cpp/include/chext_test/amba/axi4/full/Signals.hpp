@@ -3,6 +3,7 @@
 
 #include <chext_test/amba/axi4/full/Packets.hpp>
 #include <chext_test/util/Exception.hpp>
+#include <chext_test/util/Util.hpp>
 #include <chext_test/vutil.hpp>
 
 #include <fmt/core.h>
@@ -106,9 +107,9 @@ public:
             , user(fmt::format("{}_user", name).c_str()) {}
 
         void writeFrom(value_type const& packet) {
-            validateWidth("ar.id", packet.id.length(), vutil::width_or(config.wId, 32));
+            validateWidth("ar.id", packet.id.length(), util::width_or(config.wId, 32));
             validateWidth("ar.addr", packet.addr.length(), config.wAddr);
-            validateWidth("ar.user", packet.user.length(), vutil::width_or(config.wUserAR, 32));
+            validateWidth("ar.user", packet.user.length(), util::width_or(config.wUserAR, 32));
             vutil::write_if<hasId, config.wId>(id, packet.id);
             vutil::write<config.wAddr>(addr, packet.addr);
             vutil::write<config.wLen>(len, packet.len);
@@ -154,9 +155,9 @@ public:
             , user(fmt::format("{}_user", name).c_str()) {}
 
         void writeFrom(value_type const& packet) {
-            validateWidth("r.id", packet.id.length(), vutil::width_or(config.wId, 32));
+            validateWidth("r.id", packet.id.length(), util::width_or(config.wId, 32));
             validateWidth("r.data", packet.data.length(), config.wData);
-            validateWidth("r.user", packet.user.length(), vutil::width_or(config.wUserR, 32));
+            validateWidth("r.user", packet.user.length(), util::width_or(config.wUserR, 32));
             vutil::write_if<hasId, config.wId>(id, packet.id);
             vutil::write<config.wData>(data, packet.data);
             vutil::write<2>(resp, packet.resp);
@@ -202,9 +203,9 @@ public:
             , user(fmt::format("{}_user", name).c_str()) {}
 
         void writeFrom(value_type const& packet) {
-            validateWidth("aw.id", packet.id.length(), vutil::width_or(config.wId, 32));
+            validateWidth("aw.id", packet.id.length(), util::width_or(config.wId, 32));
             validateWidth("aw.addr", packet.addr.length(), config.wAddr);
-            validateWidth("aw.user", packet.user.length(), vutil::width_or(config.wUserAW, 32));
+            validateWidth("aw.user", packet.user.length(), util::width_or(config.wUserAW, 32));
             vutil::write_if<hasId, config.wId>(id, packet.id);
             vutil::write<config.wAddr>(addr, packet.addr);
             vutil::write<config.wLen>(len, packet.len);
@@ -250,7 +251,7 @@ public:
         void writeFrom(value_type const& packet) {
             validateWidth("w.data", packet.data.length(), config.wData);
             validateWidth("w.strb", packet.strb.length(), config.wStrobe);
-            validateWidth("w.user", packet.user.length(), vutil::width_or(config.wUserW, 32));
+            validateWidth("w.user", packet.user.length(), util::width_or(config.wUserW, 32));
             vutil::write<config.wData>(data, packet.data);
             vutil::write<config.wStrobe>(strb, packet.strb);
             vutil::write<1>(last, packet.last);
@@ -278,8 +279,8 @@ public:
             , user(fmt::format("{}_user", name).c_str()) {}
 
         void writeFrom(value_type const& packet) {
-            validateWidth("b.id", packet.id.length(), vutil::width_or(config.wId, 32));
-            validateWidth("b.user", packet.user.length(), vutil::width_or(config.wUserB, 32));
+            validateWidth("b.id", packet.id.length(), util::width_or(config.wId, 32));
+            validateWidth("b.user", packet.user.length(), util::width_or(config.wUserB, 32));
             vutil::write_if<hasId, config.wId>(id, packet.id);
             vutil::write<2>(resp, packet.resp);
             vutil::write_if<hasUserB, config.wUserB>(user, packet.user);

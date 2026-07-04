@@ -1,10 +1,16 @@
 #ifndef CHEXT_TEST_UTIL_UTIL_HPP_INCLUDED
 #define CHEXT_TEST_UTIL_UTIL_HPP_INCLUDED
 
+#include <climits>
+#include <cstdint>
 #include <systemc>
 #include <type_traits>
 
 namespace chext_test::util {
+
+constexpr unsigned width_or(unsigned width, unsigned fallback) {
+    return width > 0 ? width : fallback;
+}
 
 namespace detail {
 

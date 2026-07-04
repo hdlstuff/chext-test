@@ -23,6 +23,10 @@
 #include <chext_test/amba/axi4/lite/Driver.hpp>
 /* END: chext_test includes for 'amba/axi4' */
 
+/* BEGIN: chext_test includes for 'amba/axi4s' */
+#include <chext_test/amba/axi4s/Driver.hpp>
+/* END: chext_test includes for 'amba/axi4s' */
+
 /* BEGIN: chext_test includes for 'elastic' */
 #include <chext_test/elastic/Driver.hpp>
 #include <chext_test/vutil.hpp>
@@ -294,6 +298,11 @@ public:
     chext_test::amba::axi4::full::Master<4,32,256,true,true,true,true,false,false,true,false,4,4,0,0,0> m_axi;
     /* END: chext_test public for 'amba/axi4' */
 
+    /* BEGIN: chext_test public for 'amba/axi4s' */
+    chext_test::amba::axi4s::Master<64,4,2,8,true,true,true,true> m_axis;
+    chext_test::amba::axi4s::Slave<32,0,0,1,false,false,true,false> s_axis_hier;
+    /* END: chext_test public for 'amba/axi4s' */
+
     /* BEGIN: chext_test public for 'elastic' */
     chext_test::elastic::Source<chext_test::vutil::signal_t<32>> source1;
     chext_test::elastic::Source<chext_test::elastic::DataLastSignals<64>> source2;
@@ -327,6 +336,8 @@ ScmyModule::ScmyModule(sc_core::sc_module_name const& moduleName) :
     irq("irq"),
     s_axil_management("s_axil_management", clock, reset),
     m_axi("m_axi", clock, reset),
+    m_axis("m_axis", clock, reset),
+    s_axis_hier("s_axis_hier", clock, reset),
     source1("source1", clock, reset),
     source2("source2", clock, reset),
     source3("source3", clock, reset),
@@ -418,6 +429,24 @@ ScmyModule::ScmyModule(sc_core::sc_module_name const& moduleName) :
     verilatedModule_.m_axi_RLAST(this->m_axi.r.bits.last);
 
     /* END: chext_test ctor for 'amba/axi4' */
+
+    /* BEGIN: chext_test ctor for 'amba/axi4s' */
+    verilatedModule_.m_axis_TVALID(this->m_axis.valid);
+    verilatedModule_.m_axis_TREADY(this->m_axis.ready);
+    verilatedModule_.m_axis_TDATA(this->m_axis.bits.data);
+    verilatedModule_.m_axis_TKEEP(this->m_axis.bits.keep);
+    verilatedModule_.m_axis_TSTRB(this->m_axis.bits.strb);
+    verilatedModule_.m_axis_TLAST(this->m_axis.bits.last);
+    verilatedModule_.m_axis_TID(this->m_axis.bits.id);
+    verilatedModule_.m_axis_TDEST(this->m_axis.bits.dest);
+    verilatedModule_.m_axis_TUSER(this->m_axis.bits.user);
+
+    verilatedModule_.s_axis_hier_valid(this->s_axis_hier.valid);
+    verilatedModule_.s_axis_hier_bits_data(this->s_axis_hier.bits.data);
+    verilatedModule_.s_axis_hier_bits_keep(this->s_axis_hier.bits.keep);
+    verilatedModule_.s_axis_hier_bits_user(this->s_axis_hier.bits.user);
+
+    /* END: chext_test ctor for 'amba/axi4s' */
 
     /* BEGIN: chext_test ctor for 'elastic' */
     verilatedModule_.source1_bits(this->source1.bits);

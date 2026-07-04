@@ -1,6 +1,8 @@
 #ifndef CHEXT_TEST_VUTIL_HPP_INCLUDED
 #define CHEXT_TEST_VUTIL_HPP_INCLUDED
 
+#include <chext_test/util/Util.hpp>
+
 #include <cstdint>
 #include <systemc>
 #include <type_traits>
@@ -47,21 +49,28 @@ using payload_t = typename detail::payload_impl<WIDTH>::type;
 template<unsigned WIDTH, sc_core::sc_writer_policy WP = sc_core::SC_ONE_WRITER>
 using signal_t = sc_core::sc_signal<payload_t<WIDTH>, WP>;
 
-constexpr unsigned nonzero_width(unsigned width) {
-    return width > 0 ? width : 1;
-}
-
-constexpr unsigned width_or(unsigned width, unsigned fallback) {
-    return width > 0 ? width : fallback;
-}
-
 struct absent_signal {
     explicit absent_signal(char const*) {}
 };
 
+namespace detail {
+
+template<bool PRESENT, unsigned WIDTH, sc_core::sc_writer_policy WP>
+struct optional_signal_impl {
+    using type = absent_signal;
+};
+
+template<unsigned WIDTH, sc_core::sc_writer_policy WP>
+struct optional_signal_impl<true, WIDTH, WP> {
+    static_assert(WIDTH > 0, "present optional_signal_t must have nonzero width");
+    using type = signal_t<WIDTH, WP>;
+};
+
+} // namespace detail
+
 // Optional signal helper for protocols where width 0 means the port is absent.
 template<bool PRESENT, unsigned WIDTH, sc_core::sc_writer_policy WP = sc_core::SC_ONE_WRITER>
-using optional_signal_t = std::conditional_t<PRESENT, signal_t<nonzero_width(WIDTH), WP>, absent_signal>;
+using optional_signal_t = typename detail::optional_signal_impl<PRESENT, WIDTH, WP>::type;
 
 namespace detail {
 
@@ -120,14 +129,14 @@ void write(signal_t<WIDTH, WP>& signal, ValueT const& value) {
 template<bool PRESENT, unsigned WIDTH, typename SignalT, typename ValueT>
 void write_if(SignalT& signal, ValueT const& value) {
     if constexpr (PRESENT)
-        write<nonzero_width(WIDTH)>(signal, value);
+        write<WIDTH>(signal, value);
 }
 
 // Read only when a protocol field is present.
 template<bool PRESENT, unsigned WIDTH, typename SignalT, typename ValueT>
 void read_if(SignalT const& signal, ValueT& value) {
     if constexpr (PRESENT)
-        read<nonzero_width(WIDTH)>(signal, value);
+        read<WIDTH>(signal, value);
 }
 
 } // namespace chext_test::vutil

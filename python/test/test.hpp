@@ -23,6 +23,10 @@
 #include <chext_test/amba/axi4/lite/Driver.hpp>
 /* END: chext_test includes for 'amba/axi4' */
 
+/* BEGIN: chext_test includes for 'amba/axi4s' */
+#include <chext_test/amba/axi4s/Driver.hpp>
+/* END: chext_test includes for 'amba/axi4s' */
+
 /* BEGIN: chext_test includes for 'elastic' */
 #include <chext_test/elastic/Driver.hpp>
 #include <chext_test/vutil.hpp>
@@ -293,6 +297,11 @@ public:
     chext_test::amba::axi4::lite::Slave<20,32> s_axil_management;
     chext_test::amba::axi4::full::Master<4,32,256,true,true,true,true,false,false,true,false,4,4,0,0,0> m_axi;
     /* END: chext_test public for 'amba/axi4' */
+
+    /* BEGIN: chext_test public for 'amba/axi4s' */
+    chext_test::amba::axi4s::Master<64,4,2,8,true,true,true,true> m_axis;
+    chext_test::amba::axi4s::Slave<32,0,0,1,false,false,true,false> s_axis_hier;
+    /* END: chext_test public for 'amba/axi4s' */
 
     /* BEGIN: chext_test public for 'elastic' */
     chext_test::elastic::Source<chext_test::vutil::signal_t<32>> source1;
